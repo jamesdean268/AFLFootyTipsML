@@ -1,0 +1,14 @@
+AFL Footy Tipping ML pseudo-design document
+
+End goal:
+
+playerGames = Count of Games Played by a Player
+playerFeatures = Sum of Player Features For All Games Played
+averagePlayerFeatures = playerFeatures / playerGames
+teamFeatures = sum(averagePlayerFeatures)
+matchFeatures = homeTeamFeatures - awayTeamFeatures
+Neural Net over matchFeatures to predict whether home or away team will win
+Neural Net trained over data from 2012 onwards
+
+
+
