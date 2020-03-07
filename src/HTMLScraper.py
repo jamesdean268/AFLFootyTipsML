@@ -5,9 +5,9 @@ from bs4 import BeautifulSoup
 
 class HTMLScraper:
 	# Set team names based on afltables.com requirements
-	teams = ['adelaide']#,
+	teams = ['adelaide',
+	'brisbanel']#,
 	'''
-	'brisbanel',
 	'carlton',
 	'collingwood',
 	'essendon',
@@ -26,7 +26,7 @@ class HTMLScraper:
 	'bullldogs']
 	'''
 
-	years = [2010]#, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018]
+	years = [2010, 2011]#, 2012, 2013, 2014, 2015, 2016, 2017, 2018]
 	
     # Set full team names based on afl.com.au requirements
 	fullTeams = ['Adelaide',
@@ -49,10 +49,10 @@ class HTMLScraper:
 	'Western Bulldogs'
 	]
 
-	def handle_data(self, data):
-		print("Encountered some data  :", data)
-
 	def getAllPlayerStats(self):
+		cRow = 0
+		arrSize = 100
+		consolidatedTable = [['-1' for c in range(30)] for r in range(arrSize*100)]
 		for i in range(len(self.teams)):
 			for j in range(len(self.years)):
 				# Prepare afltables url
@@ -64,7 +64,6 @@ class HTMLScraper:
 				soup = BeautifulSoup(contents, 'html.parser')
 				
 				# Extract tables
-				arrSize = 100
 				tables = soup.find_all('table')
 
 				# Store all tables in 3D array
@@ -75,51 +74,63 @@ class HTMLScraper:
 					for row in table.find_all('tr'):
 						c = 0
 						for col in row.find_all('td'):
-							#new_table.append(col.get_text())
 							strTable[t][r][c] = col.get_text()
-							#strTable[t][r][c] = col.contents
 							c += 1
 						r += 1
 					t += 1
-							
+
+				l = 0			
 				# Loop through each player, capture tot column idx and value, and add number of games played
-				for t in range(len(tables)): # Tables
-					# Extract max row index
-					r = 2
-					while not(strTable[t][r][0] == '-1'):
-						r += 1
-					endRow = r - 1
-					# Extract max col index
-					c = 1
-					while not(strTable[t][2][c] == '-1'):
-						c += 1
-					totCol = c - 1
-					# Calculate number of games played and add to additional column
-					for r in range (2, endRow): # First player row index
-						gamesPlayed = 0
-						for c in range(1, totCol):
-							if str.isnumeric(strTable[t][r][c]):
-								gamesPlayed += 1
-						strTable[t][r][totCol + 1] = gamesPlayed
+				# To guarantee 'isnumeric' works to calculate number of games played, we use the pct played table
+				pctTable = 22
+				
+				# Extract max row index
+				r = 2
+				while not(strTable[pctTable][r][0] == '-1'):
+					r += 1
+				endRow = r - 1
+				# Extract max col index
+				c = 1
+				while not(strTable[pctTable][2][c] == '-1'):
+					c += 1
+				totCol = c - 1
+				# Calculate number of games played and add to additional column
+				for r in range (2, endRow): # First player row index
+					gamesPlayed = 0
+					for c in range(1, totCol):
+						if str.isnumeric(strTable[pctTable][r][c]):
+							gamesPlayed += 1
+					strTable[pctTable][r][totCol + 1] = gamesPlayed
+				
+				# Add total features to consolidated table. Assumes all tables are the same size / shape
+				for r in range(2, endRow):
+					consolidatedTable[cRow][0] = strTable[pctTable][r][0] # Player Name
+					consolidatedTable[cRow][1] = self.years[j] # Year
+					consolidatedTable[cRow][2] = self.teams[i] # Team
+					consolidatedTable[cRow][3] = strTable[pctTable][r][totCol + 1] # Games Played
+					for t in range(len(tables)):
+						consolidatedTable[cRow][4 + t] = strTable[t][r][totCol] # Total of feature
+					cRow += 1
 
-					# Build consolidated table
-					consolidatedTable = [['-1' for c in range(4 + len(tables))] for r in range(arrSize*10)]
-					consolidatedTableRow = 0
-					for r in range(2, endRow):
-						consolidatedTable[consolidatedTableRow][0] = strTable[t][r][0] # Player Name
-						consolidatedTable[consolidatedTableRow][1] = self.years[j] # Year
-						consolidatedTable[consolidatedTableRow][2] = self.teams[i] # Team
-						consolidatedTable[consolidatedTableRow][3] = strTable[t][r][totCol + 1] # Games Played
-						#consolidatedTable[consolidatedTableRow][0] = strTable[t][r][4 + t] # Total of feature
-						consolidatedTableRow += 1
 
-
+				'''
 				# TODO: THIS
 				print(strTable[0][2][2])
 				print(strTable[0][2][24]) # Should be 9 games
 				print(strTable[0][3][24]) # Should be 13 games
 				print(strTable[0][6][24]) # Should be 19 games
 				print(strTable[0][8][24]) # Should be 22 games
+				'''
+
+				# TODO: THIS
+				p = 3 * (i + 2) * (j + 3)
+				print(p)
+				print(consolidatedTable[p][0]) # Armstrong, Tony
+				print(consolidatedTable[p][1]) # 2010
+				print(consolidatedTable[p][2]) # adelaide
+				print(consolidatedTable[p][3]) # 9
+				print(consolidatedTable[p][4]) # 140
+				print(consolidatedTable[p][11]) # 14
 
 				
 
