@@ -51,8 +51,10 @@ class HTMLScraper:
 
 	def getAllPlayerStats(self):
 		cRow = 0
+		rRow = 0
 		arrSize = 100
 		consolidatedTable = [['-1' for c in range(30)] for r in range(arrSize*100)]
+		roundTable = [['-1' for c in range(4)] for r in range(arrSize*100)]
 		for i in range(len(self.teams)):
 			for j in range(len(self.years)):
 				# Prepare afltables url
@@ -78,12 +80,23 @@ class HTMLScraper:
 							c += 1
 						r += 1
 					t += 1
-
-				l = 0			
+						
 				# Loop through each player, capture tot column idx and value, and add number of games played
 				# To guarantee 'isnumeric' works to calculate number of games played, we use the pct played table
 				pctTable = 22
-				
+
+				# Extract round data
+				headerArray = ['-1' for t in range(arrSize)]
+				headerTable = tables[pctTable]
+				headers = headerTable.find_all('thead')
+				roundHeaders = headers[0].contents
+				roundHeader = roundHeaders[1]
+				c = 0
+				for col in roundHeader.find_all('th'):
+					headerArray[c] = col.get_text()
+					c += 1
+
+
 				# Extract max row index
 				r = 2
 				while not(strTable[pctTable][r][0] == '-1'):
@@ -99,7 +112,12 @@ class HTMLScraper:
 					gamesPlayed = 0
 					for c in range(1, totCol):
 						if str.isnumeric(strTable[pctTable][r][c]):
+							roundTable[rRow][0] = strTable[pctTable][r][0] # Player Name
+							roundTable[rRow][1] = self.years[j] # Year
+							roundTable[rRow][2] = self.teams[i] # Team
+							roundTable[rRow][3] = headerArray[c] # Round Number
 							gamesPlayed += 1
+							rRow += 1
 					strTable[pctTable][r][totCol + 1] = gamesPlayed
 				
 				# Add total features to consolidated table. Assumes all tables are the same size / shape
@@ -131,6 +149,7 @@ class HTMLScraper:
 				print(consolidatedTable[p][3]) # 9
 				print(consolidatedTable[p][4]) # 140
 				print(consolidatedTable[p][11]) # 14
+				print(roundTable[12][:])
 
 				
 
