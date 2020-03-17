@@ -41,4 +41,30 @@ class TableBuilder_Test(unittest.TestCase):
         print(gamesPlayed[12][3]) # R12
         self.assertEqual(gamesPlayed[12][3], 'R12')
 
+    # Spot test of team data
+    def test_getTeamData_TableCreated_ValuesExpected(self):
+        # Arrange
+        aflHTMLScraper = HTMLScraper()
+        tableBuilder = TableBuilder(aflHTMLScraper)
+        # Act
+        teamData = tableBuilder.getTeamData()
+        # Assert
+        self.assertEqual(teamData[9][0], 'adelaide')
+        self.assertEqual(teamData[9][1], 2012)
+        self.assertEqual(teamData[9][2], 'R1')
+        self.assertEqual(teamData[9][3], '137')
+        self.assertEqual(teamData[9][4], 'Away')
 
+
+        # Spot test of match data
+    def test_getMatchData_TableCreated_ValuesExpected(self):
+        # Arrange
+        aflHTMLScraper = HTMLScraper()
+        tableBuilder = TableBuilder(aflHTMLScraper)
+        # Act
+        matchData = tableBuilder.getMatchData()
+        # Assert
+        self.assertEqual(matchData[0][0], 'gws_swans')
+        self.assertEqual(matchData[9][1], 2012)
+        self.assertEqual(matchData[9][2], 'R1')
+        self.assertEqual(matchData[9][3], -63)
