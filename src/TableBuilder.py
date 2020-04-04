@@ -9,7 +9,7 @@ class TableBuilder:
     TEAM_DATA = []
 
     # Set team names based on afltables.com requirements
-    teams = ['adelaide',
+    teamsList = ['adelaide',
     'brisbanel',
     'carlton',
     'collingwood',
@@ -26,7 +26,29 @@ class TableBuilder:
     'stkilda',
     'swans',
     'westcoast',
+    'bullldogs']    
+
+    # Set team names based on afltables.com requirements
+    teams = ['adelaide',
+    'brisbanel']#,
+    '''
+    'carlton',
+    'collingwood',
+    'essendon',
+    'fremantle',
+    'geelong',
+    'goldcoast',
+    'gws',
+    'hawthorn',
+    'melbourne',
+    'kangaroos',
+    'padelaide',
+    'richmond',
+    'stkilda',
+    'swans',
+    'westcoast',
     'bullldogs']
+    '''
 
     years = [2012, 2013]#, 2014, 2015, 2016, 2017, 2018]
 
@@ -52,8 +74,12 @@ class TableBuilder:
     ]
 
     # Dependency injection of HTML scraper
-    def __init__(self, HTMLScraper):
+    def __init__(self, HTMLScraper):#, teams, teamsList, years, fullTeams):
         self._HTMLScraper = HTMLScraper
+    #    self.teams = teams
+    #    self.teamsList = teamsList
+    #    self.years = years
+    #    self.fullTeams = fullTeams
 
     def getPlayerStats(self):
         if self.PLAYER_STATS == []:
@@ -80,8 +106,8 @@ class TableBuilder:
         # Initialise internal variables and arrays
         cRow = 0
         rRow = 0
-        arrSize = 100
-        self.PLAYER_STATS = [['-1' for c in range(30)] for r in range(arrSize*100)]
+        arrSize = 1000
+        self.PLAYER_STATS = [['-1' for c in range(30)] for r in range(arrSize)]
         self.GAMES_PLAYED = [['-1' for c in range(4)] for r in range(arrSize*100)]
 
         # Loop through each team and each year to get all the data
@@ -166,7 +192,7 @@ class TableBuilder:
         # Initialise internal variables and arrays
         tRow = 0
         mRow = 0
-        arrSize = 100
+        arrSize = 10000
         self.MATCH_DATA = [['-1' for c in range(4)] for r in range(arrSize*100)]
         self.TEAM_DATA = [['-1' for c in range(5)] for r in range(arrSize*100)]
 
@@ -206,7 +232,7 @@ class TableBuilder:
                             for i in range(0,len(teamScores)):
                                 fullTeamName = teamNames[i].get_text()
                                 teamIdx = self.fullTeams.index(fullTeamName)
-                                self.TEAM_DATA[tRow][0] = self.teams[teamIdx] # Team Name
+                                self.TEAM_DATA[tRow][0] = self.teamsList[teamIdx] # Team Name
                                 self.TEAM_DATA[tRow][1] = self.years[j] # Year
                                 self.TEAM_DATA[tRow][2] = roundText # Round
                                 self.TEAM_DATA[tRow][3] = teamScores[i].get_text() # Score

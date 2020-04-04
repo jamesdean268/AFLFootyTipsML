@@ -52,7 +52,7 @@ class TableBuilder_Test(unittest.TestCase):
         self.assertEqual(teamData[9][0], 'adelaide')
         self.assertEqual(teamData[9][1], 2012)
         self.assertEqual(teamData[9][2], 'R1')
-        self.assertEqual(teamData[9][3], '137')
+        self.assertEqual(int(teamData[9][3]), int('137'))
         self.assertEqual(teamData[9][4], 'Away')
 
 
@@ -65,6 +65,6 @@ class TableBuilder_Test(unittest.TestCase):
         matchData = tableBuilder.getMatchData()
         # Assert
         self.assertEqual(matchData[0][0], 'gws_swans')
-        self.assertEqual(matchData[9][1], 2012)
-        self.assertEqual(matchData[9][2], 'R1')
-        self.assertEqual(matchData[9][3], -63)
+        self.assertEqual(matchData[0][1], 2012)
+        self.assertEqual(matchData[0][2], 'R1')
+        self.assertEqual(matchData[0][3], -63)
