@@ -29,9 +29,9 @@ class TableBuilder_Test(unittest.TestCase):
     'bullldogs']    
 
     # Set team names based on afltables.com requirements
-    teams = ['adelaide',
-    'brisbanel']#,
+    teams = ['adelaide']#,
     '''
+    'brisbanel',
     'carlton',
     'collingwood',
     'essendon',
@@ -50,7 +50,7 @@ class TableBuilder_Test(unittest.TestCase):
     'bullldogs']
     '''
 
-    years = [2012, 2013]#, 2014, 2015, 2016, 2017, 2018]
+    years = [2012]#, 2013]#, 2014, 2015, 2016, 2017, 2018]
 
     # Set full team names based on afl.com.au requirements
     fullTeams = ['Adelaide',
