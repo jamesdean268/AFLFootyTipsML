@@ -8,99 +8,45 @@ class TableBuilder:
     MATCH_DATA = []
     TEAM_DATA = []
 
-    # Set team names based on afltables.com requirements
-    teamsList = ['adelaide',
-    'brisbanel',
-    'carlton',
-    'collingwood',
-    'essendon',
-    'fremantle',
-    'geelong',
-    'goldcoast',
-    'gws',
-    'hawthorn',
-    'melbourne',
-    'kangaroos',
-    'padelaide',
-    'richmond',
-    'stkilda',
-    'swans',
-    'westcoast',
-    'bullldogs']    
+    # Variables (now injected!)
+    teamsList = []    
+    teams = [] # Set team names based on afltables.com requirements
+    years = []
+    fullTeams = []
 
-    # Set team names based on afltables.com requirements
-    teams = ['adelaide',
-    'brisbanel']#,
-    '''
-    'carlton',
-    'collingwood',
-    'essendon',
-    'fremantle',
-    'geelong',
-    'goldcoast',
-    'gws',
-    'hawthorn',
-    'melbourne',
-    'kangaroos',
-    'padelaide',
-    'richmond',
-    'stkilda',
-    'swans',
-    'westcoast',
-    'bullldogs']
-    '''
-
-    years = [2012, 2013]#, 2014, 2015, 2016, 2017, 2018]
-
-    # Set full team names based on afl.com.au requirements
-    fullTeams = ['Adelaide',
-    'Brisbane Lions',
-    'Carlton',
-    'Collingwood',
-    'Essendon',
-    'Fremantle',
-    'Geelong',
-    'Gold Coast',
-    'Greater Western Sydney',
-    'Hawthorn',
-    'Melbourne',
-    'North Melbourne',
-    'Port Adelaide',
-    'Richmond',
-    'St Kilda',
-    'Sydney',
-    'West Coast',
-    'Western Bulldogs'
-    ]
-
-    # Dependency injection of HTML scraper
-    def __init__(self, HTMLScraper):#, teams, teamsList, years, fullTeams):
+    # Dependency injection of HTML scraper and variables
+    def __init__(self, HTMLScraper, teams, teamsList, years, fullTeams):
         self._HTMLScraper = HTMLScraper
-    #    self.teams = teams
-    #    self.teamsList = teamsList
-    #    self.years = years
-    #    self.fullTeams = fullTeams
+        self.teams = teams
+        self.teamsList = teamsList
+        self.years = years
+        self.fullTeams = fullTeams
 
+    # Get in-memory array of player stats
     def getPlayerStats(self):
         if self.PLAYER_STATS == []:
             self.calculateGamesPlayedAndPlayerStats()
         return self.PLAYER_STATS
     
+    # Get in-memory array of games played
     def getGamesPlayed(self):
         if self.GAMES_PLAYED == []:
             self.calculateGamesPlayedAndPlayerStats()
         return self.GAMES_PLAYED
     
+    # Get in-memory array of team data
     def getTeamData(self):
         if self.TEAM_DATA == []:
             self.calculateTeamAndMatchData()
         return self.TEAM_DATA
     
+    # Get in-memory array of match data
     def getMatchData(self):
         if self.MATCH_DATA == []:
             self.calculateTeamAndMatchData()
         return self.MATCH_DATA
 
+    # Use the HTML scraper to calculate player stats and games played
     def calculateGamesPlayedAndPlayerStats(self):
 
         # Initialise internal variables and arrays
@@ -186,7 +132,7 @@ class TableBuilder:
                         self.PLAYER_STATS[cRow][4 + t] = strTable[t][r][totCol] # Total of feature
                     cRow += 1
 
-
+    # Use the HTML scraper to calculate the team data and match data
     def calculateTeamAndMatchData(self):
 
         # Initialise internal variables and arrays

@@ -8,11 +8,76 @@ from src.HTMLScraper import HTMLScraper
 
 class TableBuilder_Test(unittest.TestCase):
 
+    # Set team names based on afltables.com requirements
+    teamsList = ['adelaide',
+    'brisbanel',
+    'carlton',
+    'collingwood',
+    'essendon',
+    'fremantle',
+    'geelong',
+    'goldcoast',
+    'gws',
+    'hawthorn',
+    'melbourne',
+    'kangaroos',
+    'padelaide',
+    'richmond',
+    'stkilda',
+    'swans',
+    'westcoast',
+    'bullldogs']    
+
+    # Set team names based on afltables.com requirements
+    teams = ['adelaide',
+    'brisbanel']#,
+    '''
+    'carlton',
+    'collingwood',
+    'essendon',
+    'fremantle',
+    'geelong',
+    'goldcoast',
+    'gws',
+    'hawthorn',
+    'melbourne',
+    'kangaroos',
+    'padelaide',
+    'richmond',
+    'stkilda',
+    'swans',
+    'westcoast',
+    'bullldogs']
+    '''
+
+    years = [2012, 2013]#, 2014, 2015, 2016, 2017, 2018]
+
+    # Set full team names based on afl.com.au requirements
+    fullTeams = ['Adelaide',
+    'Brisbane Lions',
+    'Carlton',
+    'Collingwood',
+    'Essendon',
+    'Fremantle',
+    'Geelong',
+    'Gold Coast',
+    'Greater Western Sydney',
+    'Hawthorn',
+    'Melbourne',
+    'North Melbourne',
+    'Port Adelaide',
+    'Richmond',
+    'St Kilda',
+    'Sydney',
+    'West Coast',
+    'Western Bulldogs'
+    ]    
+
     # Spot test of player Stats
     def test_getPlayerStats_TableCreated_ValuesExpected(self):
         # Arrange
         aflHTMLScraper = HTMLScraper()
-        tableBuilder = TableBuilder(aflHTMLScraper)
+        tableBuilder = TableBuilder(aflHTMLScraper, self.teams, self.teamsList, self.years, self.fullTeams)
         # Act
         playerStats = tableBuilder.getPlayerStats()
         # Assert
@@ -34,7 +99,7 @@ class TableBuilder_Test(unittest.TestCase):
     def test_getGamesPlayed_TableCreated_ValuesExpected(self):
         # Arrange
         aflHTMLScraper = HTMLScraper()
-        tableBuilder = TableBuilder(aflHTMLScraper)
+        tableBuilder = TableBuilder(aflHTMLScraper, self.teams, self.teamsList, self.years, self.fullTeams)
         # Act
         gamesPlayed = tableBuilder.getGamesPlayed()
         # Assert
@@ -45,7 +110,7 @@ class TableBuilder_Test(unittest.TestCase):
     def test_getTeamData_TableCreated_ValuesExpected(self):
         # Arrange
         aflHTMLScraper = HTMLScraper()
-        tableBuilder = TableBuilder(aflHTMLScraper)
+        tableBuilder = TableBuilder(aflHTMLScraper, self.teams, self.teamsList, self.years, self.fullTeams)
         # Act
         teamData = tableBuilder.getTeamData()
         # Assert
@@ -60,7 +125,7 @@ class TableBuilder_Test(unittest.TestCase):
     def test_getMatchData_TableCreated_ValuesExpected(self):
         # Arrange
         aflHTMLScraper = HTMLScraper()
-        tableBuilder = TableBuilder(aflHTMLScraper)
+        tableBuilder = TableBuilder(aflHTMLScraper, self.teams, self.teamsList, self.years, self.fullTeams)
         # Act
         matchData = tableBuilder.getMatchData()
         # Assert
