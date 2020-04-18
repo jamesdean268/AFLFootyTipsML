@@ -19,8 +19,8 @@ class Sqlite3Database:
         # Create DB Cursor
         cursorObj = dbConnection.cursor()
         # Execute SQL to create tables
-        cursorObj.execute("CREATE TABLE GAMES_PLAYED(player text, year text, team text, round text)")
-        cursorObj.execute("INSERT INTO GAMES_PLAYED VALUES('James', '2020', 'James', 'R1')")
+        cursorObj.execute("CREATE TABLE GAMES_PLAYED(player text, year text, team text, round text);")
+        cursorObj.execute("INSERT INTO GAMES_PLAYED VALUES('James', '2020', 'James', 'R1');")
         # Commit changes
         dbConnection.commit()
 
@@ -32,4 +32,5 @@ if __name__ == '__main__':
     pathToDatabase = pwd + '/data/AFLFootyTips.db'
     dbObj = Sqlite3Database()
     dbConnection = dbObj.connectToSqlite3DatabaseFile(pathToDatabase)
+    dbObj.createSqlite3Tables(dbConnection)
 
