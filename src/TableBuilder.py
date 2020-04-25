@@ -157,8 +157,10 @@ class TableBuilder:
                         insertQuery += "'" + str(self.years[j]) + "', " # Year
                         insertQuery += "'" + str(self.teams[i]) + "', " # Team
                         insertQuery += "'" + str(strTable[pctTable][r][totCol + 1]) + "'," # Games Played
-                        for t in range(len(tables)):
-                            if t == len(tables) - 1:
+                        #for t in range(len(tables)):
+                        for t in range(pctTable + 1):
+                            #if t == len(tables) - 1:
+                            if t == pctTable:
                                 insertQuery += "'" + str(strTable[t][r][totCol]) + "'" # Last column
                             else:
                                 insertQuery += "'" + str(strTable[t][r][totCol]) + "'," # Features
@@ -169,7 +171,8 @@ class TableBuilder:
                         self.PLAYER_STATS[cRow][1] = self.years[j] # Year
                         self.PLAYER_STATS[cRow][2] = self.teams[i] # Team
                         self.PLAYER_STATS[cRow][3] = strTable[pctTable][r][totCol + 1] # Games Played
-                        for t in range(len(tables)):
+                        #for t in range(len(tables)):
+                        for t in range(pctTable):
                             self.PLAYER_STATS[cRow][4 + t] = strTable[t][r][totCol] # Total of feature
                     cRow += 1
 

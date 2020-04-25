@@ -17,7 +17,7 @@ class Sqlite3Database:
             cursorObj = dbConnection.cursor()
             # Execute SQL to create tables
             cursorObj.execute("CREATE TABLE GAMES_PLAYED(player text, year text, team text, round text);")
-            cursorObj.execute("CREATE TABLE PLAYER_STATS(player text, year text, team text, games_played integer, DI real, KI real, MK real, HB real, GL real, BH real, HO real, TK real, RB real, I5 real, CL real, CG real, FF real, FA real, BR real, CP real, UP real, CM real, MI real, OP real, BO real, GA real, Pct real, SU text);")
+            cursorObj.execute("CREATE TABLE PLAYER_STATS(player text, year text, team text, games_played integer, DI real, KI real, MK real, HB real, GL real, BH real, HO real, TK real, RB real, I5 real, CL real, CG real, FF real, FA real, BR real, CP real, UP real, CM real, MI real, OP real, BO real, GA real, Pct real);")
             cursorObj.execute("CREATE TABLE TEAM_DATA(team text, year text, round text, score real, home_away text);")
             cursorObj.execute("CREATE TABLE MATCH_DATA(hometeam_awayteam text, year text, round text, match_score real);")
             # Commit changes
