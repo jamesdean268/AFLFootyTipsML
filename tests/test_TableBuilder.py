@@ -4,7 +4,9 @@ import unittest
 from src.TableBuilder import TableBuilder
 
 # Dependencies
+import os
 from src.HTMLScraper import HTMLScraper
+from src.Sqlite3Database import Sqlite3Database
 
 class TableBuilder_Test(unittest.TestCase):
 
@@ -77,7 +79,10 @@ class TableBuilder_Test(unittest.TestCase):
     def test_getPlayerStats_TableCreated_ValuesExpected(self):
         # Arrange
         aflHTMLScraper = HTMLScraper()
-        tableBuilder = TableBuilder(aflHTMLScraper, self.teams, self.teamsList, self.years, self.fullTeams)
+        pwd = os.getcwd()
+        pathToDatabase = pwd + '/data/AFLFootyTips.db'
+        aflSqlite3Database = Sqlite3Database(pathToDatabase)
+        tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, self.teams, self.teamsList, self.years, self.fullTeams)
         # Act
         playerStats = tableBuilder.getPlayerStats()
         # Assert
@@ -99,7 +104,10 @@ class TableBuilder_Test(unittest.TestCase):
     def test_getGamesPlayed_TableCreated_ValuesExpected(self):
         # Arrange
         aflHTMLScraper = HTMLScraper()
-        tableBuilder = TableBuilder(aflHTMLScraper, self.teams, self.teamsList, self.years, self.fullTeams)
+        pwd = os.getcwd()
+        pathToDatabase = pwd + '/data/AFLFootyTips.db'
+        aflSqlite3Database = Sqlite3Database(pathToDatabase)
+        tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, self.teams, self.teamsList, self.years, self.fullTeams)
         # Act
         gamesPlayed = tableBuilder.getGamesPlayed()
         # Assert
@@ -110,7 +118,10 @@ class TableBuilder_Test(unittest.TestCase):
     def test_getTeamData_TableCreated_ValuesExpected(self):
         # Arrange
         aflHTMLScraper = HTMLScraper()
-        tableBuilder = TableBuilder(aflHTMLScraper, self.teams, self.teamsList, self.years, self.fullTeams)
+        pwd = os.getcwd()
+        pathToDatabase = pwd + '/data/AFLFootyTips.db'
+        aflSqlite3Database = Sqlite3Database(pathToDatabase)
+        tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, self.teams, self.teamsList, self.years, self.fullTeams)
         # Act
         teamData = tableBuilder.getTeamData()
         # Assert
@@ -125,7 +136,10 @@ class TableBuilder_Test(unittest.TestCase):
     def test_getMatchData_TableCreated_ValuesExpected(self):
         # Arrange
         aflHTMLScraper = HTMLScraper()
-        tableBuilder = TableBuilder(aflHTMLScraper, self.teams, self.teamsList, self.years, self.fullTeams)
+        pwd = os.getcwd()
+        pathToDatabase = pwd + '/data/AFLFootyTips.db'
+        aflSqlite3Database = Sqlite3Database(pathToDatabase)
+        tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, self.teams, self.teamsList, self.years, self.fullTeams)
         # Act
         matchData = tableBuilder.getMatchData()
         # Assert

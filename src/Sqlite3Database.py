@@ -5,24 +5,33 @@ import os
 
 class Sqlite3Database:
 
-    # Tables
-    GAMES_PLAYED = []
-    PLAYER_STATS = []
-    MATCH_DATA = []
-    TEAM_DATA = []
+    # Dependency injection of HTML scraper and variables
+    def __init__(self, pathToDatabase):
+        self.pathToDatabase = pathToDatabase
 
-    def connectToSqlite3DatabaseFile(self, pathToDatabase):
-        conn = sqlite3.connect(pathToDatabase)
-        return conn
+    def createSqlite3Tables(self):
+        try:
+            # Connect to database
+            dbConnection = sqlite3.connect(self.pathToDatabase)
+            # Create DB Cursor
+            cursorObj = dbConnection.cursor()
+            # Execute SQL to create tables
+            cursorObj.execute("CREATE TABLE GAMES_PLAYED(player text, year text, team text, round text);")
+            # Commit changes
+            dbConnection.commit()
+        except:
+            print("Database already exists")
 
-    def createSqlite3Tables(self, dbConnection):
+    def runSqlite3Query(self, query):
+        # Connect to database
+        dbConnection = sqlite3.connect(self.pathToDatabase)
         # Create DB Cursor
         cursorObj = dbConnection.cursor()
-        # Execute SQL to create tables
-        cursorObj.execute("CREATE TABLE GAMES_PLAYED(player text, year text, team text, round text);")
-        cursorObj.execute("INSERT INTO GAMES_PLAYED VALUES('James', '2020', 'James', 'R1');")
+        # Execute SQL to run a query
+        cursorObj.execute(query)
         # Commit changes
         dbConnection.commit()
+
 
 
 
@@ -30,7 +39,6 @@ class Sqlite3Database:
 if __name__ == '__main__':
     pwd = os.getcwd()
     pathToDatabase = pwd + '/data/AFLFootyTips.db'
-    dbObj = Sqlite3Database()
-    dbConnection = dbObj.connectToSqlite3DatabaseFile(pathToDatabase)
-    dbObj.createSqlite3Tables(dbConnection)
+    dbObj = Sqlite3Database(pathToDatabase)
+    dbObj.createSqlite3Tables()
 

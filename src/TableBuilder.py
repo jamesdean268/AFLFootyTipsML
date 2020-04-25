@@ -15,7 +15,8 @@ class TableBuilder:
     fullTeams = []
 
     # Dependency injection of HTML scraper and variables
-    def __init__(self, HTMLScraper, teams, teamsList, years, fullTeams):
+    def __init__(self, HTMLScraper, Sqlite3Database, teams, teamsList, years, fullTeams):
+        self._Sqlite3Database = Sqlite3Database
         self._HTMLScraper = HTMLScraper
         self.teams = teams
         self.teamsList = teamsList
