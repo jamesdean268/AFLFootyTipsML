@@ -14,14 +14,19 @@ class TableBuilder:
     years = []
     fullTeams = []
 
+    # SQL flag
+    useSQL = False
+
+
     # Dependency injection of HTML scraper and variables
-    def __init__(self, HTMLScraper, Sqlite3Database, teams, teamsList, years, fullTeams):
+    def __init__(self, HTMLScraper, Sqlite3Database, teams, teamsList, years, fullTeams, useSQL):
         self._Sqlite3Database = Sqlite3Database
         self._HTMLScraper = HTMLScraper
         self.teams = teams
         self.teamsList = teamsList
         self.years = years
         self.fullTeams = fullTeams
+        self.useSQL = useSQL
 
     # Get in-memory array of player stats
     def getPlayerStats(self):
@@ -115,10 +120,19 @@ class TableBuilder:
                     gamesPlayed = 0
                     for c in range(1, totCol):
                         if str.isnumeric(strTable[pctTable][r][c]):
-                            self.GAMES_PLAYED[rRow][0] = strTable[pctTable][r][0] # Player Name
-                            self.GAMES_PLAYED[rRow][1] = self.years[j] # Year
-                            self.GAMES_PLAYED[rRow][2] = self.teams[i] # Team
-                            self.GAMES_PLAYED[rRow][3] = headerArray[c] # Round Number
+                            if self.useSQL:
+                                insertQuery = "INSERT INTO GAMES_PLAYED VALUES ("
+                                insertQuery += "'" + str(strTable[pctTable][r][0]) + "', " # Player Name
+                                insertQuery += "'" + str(self.years[j]) + "', " # Year
+                                insertQuery += "'" + str(self.teams[i]) + "', " # Team
+                                insertQuery += "'" + str(headerArray[c]) + "'" # Round Number
+                                insertQuery += ");"
+                                self._Sqlite3Database.runSqlite3Query(insertQuery)
+                            else:
+                                self.GAMES_PLAYED[rRow][0] = strTable[pctTable][r][0] # Player Name
+                                self.GAMES_PLAYED[rRow][1] = self.years[j] # Year
+                                self.GAMES_PLAYED[rRow][2] = self.teams[i] # Team
+                                self.GAMES_PLAYED[rRow][3] = headerArray[c] # Round Number
                             gamesPlayed += 1
                             rRow += 1
                     strTable[pctTable][r][totCol + 1] = gamesPlayed
