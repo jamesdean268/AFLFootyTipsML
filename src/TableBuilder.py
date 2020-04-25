@@ -219,14 +219,27 @@ class TableBuilder:
                             for i in range(0,len(teamScores)):
                                 fullTeamName = teamNames[i].get_text()
                                 teamIdx = self.fullTeams.index(fullTeamName)
-                                self.TEAM_DATA[tRow][0] = self.teamsList[teamIdx] # Team Name
-                                self.TEAM_DATA[tRow][1] = self.years[j] # Year
-                                self.TEAM_DATA[tRow][2] = roundText # Round
-                                self.TEAM_DATA[tRow][3] = teamScores[i].get_text() # Score
-                                if i % 2 == 0:
-                                    self.TEAM_DATA[tRow][4] = "Home"
+                                if self.useSQL:
+                                    insertQuery = "INSERT INTO TEAM_DATA VALUES ("
+                                    insertQuery += "'" + str(self.teamsList[teamIdx]) + "', " # Player Name
+                                    insertQuery += "'" + str(self.years[j]) + "', " # Year
+                                    insertQuery += "'" + str(roundText) + "', " # Team
+                                    insertQuery += "'" + str(teamScores[i].get_text()) + "'," # Games Played
+                                    if i % 2 == 0:
+                                        insertQuery += "'" + "Home" + "'"
+                                    else:
+                                        insertQuery += "'" + "Away" + "'"
+                                    insertQuery += ");"
+                                    self._Sqlite3Database.runSqlite3Query(insertQuery)
                                 else:
-                                    self.TEAM_DATA[tRow][4] = "Away"
+                                    self.TEAM_DATA[tRow][0] = self.teamsList[teamIdx] # Team Name
+                                    self.TEAM_DATA[tRow][1] = self.years[j] # Year
+                                    self.TEAM_DATA[tRow][2] = roundText # Round
+                                    self.TEAM_DATA[tRow][3] = teamScores[i].get_text() # Score
+                                    if i % 2 == 0:
+                                        self.TEAM_DATA[tRow][4] = "Home"
+                                    else:
+                                        self.TEAM_DATA[tRow][4] = "Away"
                                 tRow += 1
                                
                 # Increment table
