@@ -27,6 +27,18 @@ class TableBuilder:
         self.years = years
         self.fullTeams = fullTeams
         self.useSQL = useSQL
+        if useSQL:
+            try:
+                self._Sqlite3Database.runSqlite3Query("DROP TABLE GAMES_PLAYED")
+                self._Sqlite3Database.runSqlite3Query("DROP TABLE PLAYER_STATS")
+                self._Sqlite3Database.runSqlite3Query("DROP TABLE MATCH_DATA")
+                self._Sqlite3Database.runSqlite3Query("DROP TABLE TEAM_DATA")
+                self._Sqlite3Database.createSqlite3Tables()
+                print("Tables Cleared")
+            except:
+                self._Sqlite3Database.createSqlite3Tables()
+                print("Tables Created")
+
 
     # Get in-memory array of player stats
     def getPlayerStats(self):
@@ -109,7 +121,7 @@ class TableBuilder:
                 r = 2
                 while not(strTable[pctTable][r][0] == '-1'):
                     r += 1
-                endRow = r - 1
+                endRow = r# - 1
                 # Extract max col index
                 c = 1
                 while not(strTable[pctTable][2][c] == '-1'):
@@ -139,12 +151,26 @@ class TableBuilder:
                 
                 # Add total features to consolidated table. Assumes all tables are the same size / shape
                 for r in range(2, endRow):
-                    self.PLAYER_STATS[cRow][0] = strTable[pctTable][r][0] # Player Name
-                    self.PLAYER_STATS[cRow][1] = self.years[j] # Year
-                    self.PLAYER_STATS[cRow][2] = self.teams[i] # Team
-                    self.PLAYER_STATS[cRow][3] = strTable[pctTable][r][totCol + 1] # Games Played
-                    for t in range(len(tables)):
-                        self.PLAYER_STATS[cRow][4 + t] = strTable[t][r][totCol] # Total of feature
+                    if self.useSQL:
+                        insertQuery = "INSERT INTO PLAYER_STATS VALUES ("
+                        insertQuery += "'" + str(strTable[pctTable][r][0]) + "', " # Player Name
+                        insertQuery += "'" + str(self.years[j]) + "', " # Year
+                        insertQuery += "'" + str(self.teams[i]) + "', " # Team
+                        insertQuery += "'" + str(strTable[pctTable][r][totCol + 1]) + "'," # Games Played
+                        for t in range(len(tables)):
+                            if t == len(tables) - 1:
+                                insertQuery += "'" + str(strTable[t][r][totCol]) + "'" # Last column
+                            else:
+                                insertQuery += "'" + str(strTable[t][r][totCol]) + "'," # Features
+                        insertQuery += ");"
+                        self._Sqlite3Database.runSqlite3Query(insertQuery)
+                    else:
+                        self.PLAYER_STATS[cRow][0] = strTable[pctTable][r][0] # Player Name
+                        self.PLAYER_STATS[cRow][1] = self.years[j] # Year
+                        self.PLAYER_STATS[cRow][2] = self.teams[i] # Team
+                        self.PLAYER_STATS[cRow][3] = strTable[pctTable][r][totCol + 1] # Games Played
+                        for t in range(len(tables)):
+                            self.PLAYER_STATS[cRow][4 + t] = strTable[t][r][totCol] # Total of feature
                     cRow += 1
 
     # Use the HTML scraper to calculate the team data and match data
