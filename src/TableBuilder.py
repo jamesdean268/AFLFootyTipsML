@@ -163,7 +163,10 @@ class TableBuilder:
                             if t == pctTable:
                                 insertQuery += "'" + str(strTable[t][r][totCol]) + "'" # Last column
                             else:
-                                insertQuery += "'" + str(strTable[t][r][totCol]) + "'," # Features
+                                if strTable[t][r][totCol] == "\xa0":
+                                    insertQuery += "'" + str(0.0) + "'," # Features
+                                else:
+                                    insertQuery += "'" + str(strTable[t][r][totCol]) + "'," # Features
                         insertQuery += ");"
                         self._Sqlite3Database.runSqlite3Query(insertQuery)
                     else:
