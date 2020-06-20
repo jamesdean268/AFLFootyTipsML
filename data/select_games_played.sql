@@ -1,2 +1,0 @@
--- SQLite
-SELECT * FROM GAMES_PLAYED;
