@@ -74,6 +74,7 @@ class TableBuilder_Test(unittest.TestCase):
     ]    
 
     useSQL = True
+    clearTables = True
 
     # Spot test of player Stats
     def test_getPlayerStats_TableCreated_ValuesExpected(self):
@@ -85,7 +86,7 @@ class TableBuilder_Test(unittest.TestCase):
             pwd = os.getcwd()
             pathToDatabase = pwd + '/data/AFLFootyTips.db'
             aflSqlite3Database = Sqlite3Database(pathToDatabase)
-            tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, self.teams, self.teamsList, self.years, self.fullTeams, self.useSQL)
+            tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, self.teams, self.teamsList, self.years, self.fullTeams, self.useSQL, self.clearTables)
             # Act
             playerStats = tableBuilder.getPlayerStats()
             # Assert
@@ -113,7 +114,7 @@ class TableBuilder_Test(unittest.TestCase):
             pwd = os.getcwd()
             pathToDatabase = pwd + '/data/AFLFootyTips.db'
             aflSqlite3Database = Sqlite3Database(pathToDatabase)
-            tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, self.teams, self.teamsList, self.years, self.fullTeams, self.useSQL)
+            tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, self.teams, self.teamsList, self.years, self.fullTeams, self.useSQL, self.clearTables)
             # Act
             gamesPlayed = tableBuilder.getGamesPlayed()
             # Assert
@@ -130,7 +131,7 @@ class TableBuilder_Test(unittest.TestCase):
             pwd = os.getcwd()
             pathToDatabase = pwd + '/data/AFLFootyTips.db'
             aflSqlite3Database = Sqlite3Database(pathToDatabase)
-            tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, self.teams, self.teamsList, self.years, self.fullTeams, self.useSQL)
+            tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, self.teams, self.teamsList, self.years, self.fullTeams, self.useSQL, self.clearTables)
             # Act
             teamData = tableBuilder.getTeamData()
             # Assert
@@ -151,7 +152,7 @@ class TableBuilder_Test(unittest.TestCase):
             pwd = os.getcwd()
             pathToDatabase = pwd + '/data/AFLFootyTips.db'
             aflSqlite3Database = Sqlite3Database(pathToDatabase)
-            tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, self.teams, self.teamsList, self.years, self.fullTeams, self.useSQL)
+            tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, self.teams, self.teamsList, self.years, self.fullTeams, self.useSQL, self.clearTables)
             # Act
             matchData = tableBuilder.getMatchData()
             # Assert
@@ -168,7 +169,7 @@ class TableBuilder_Test(unittest.TestCase):
             pwd = os.getcwd()
             pathToDatabase = pwd + '/data/AFLFootyTips.db'
             aflSqlite3Database = Sqlite3Database(pathToDatabase)
-            tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, self.teams, self.teamsList, self.years, self.fullTeams, self.useSQL)
+            tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, self.teams, self.teamsList, self.years, self.fullTeams, self.useSQL, self.clearTables)
             # Act
             # Build all SQL Database
             tableBuilder.calculateGamesPlayedAndPlayerStats()

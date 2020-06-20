@@ -1,4 +1,3 @@
-
 # -------- Imports ---------
 # Dependencies
 import os
@@ -76,17 +75,21 @@ fullTeams = ['Adelaide',
 
 # Main exeuction script
 generateDatabase = False
-generateCSVs = True
+generateCSVs = False
 useSQL = True
 
+# ------------------- Data preparation thread -------------------
 if generateDatabase:
+
+    # Clear tables if generating database from scratch
+    clearTables = True
 
     # Create objects
     aflHTMLScraper = HTMLScraper()
     pwd = os.getcwd()
     pathToDatabase = pwd + '/data/AFLFootyTips.db'
     aflSqlite3Database = Sqlite3Database(pathToDatabase)
-    tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, teams, teamsList, years, fullTeams, useSQL)
+    tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, teams, teamsList, years, fullTeams, useSQL, clearTables)
 
     # Build all SQL Database
     tableBuilder.calculateGamesPlayedAndPlayerStats()
@@ -110,4 +113,42 @@ if generateCSVs:
     # Export TEAM_DATA
     db_df = pd.read_sql_query("SELECT * FROM TEAM_DATA", conn)
     db_df.to_csv(pwd + '/data/TEAM_DATA.csv', index=False)
+
+# ------------------- Main execution thread -------------------
+# Get latest data from website and update tables, scrape afl.com for players, do ML
+
+# --------------- Populate current years data -----------------
+clearTables = False
+currentYear = 2020
+
+# Create objects
+aflHTMLScraper = HTMLScraper()
+pwd = os.getcwd()
+pathToDatabase = pwd + '/data/AFLFootyTips.db'
+aflSqlite3Database = Sqlite3Database(pathToDatabase)
+tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, teams, teamsList, currentYear, fullTeams, useSQL, clearTables)
+
+# Remove all previous references to the current year
+deleteQuery = "DELETE FROM GAMES_PLAYED WHERE year = " + currentYear + ";"
+aflSqlite3Database.runSqlite3Query(deleteQuery)
+deleteQuery = "DELETE FROM MATCH_DATA WHERE year = " + currentYear + ";"
+aflSqlite3Database.runSqlite3Query(deleteQuery)
+deleteQuery = "DELETE FROM PLAYER_STATS WHERE year = " + currentYear + ";"
+aflSqlite3Database.runSqlite3Query(deleteQuery)
+deleteQuery = "DELETE FROM TEAM_DATA WHERE year = " + currentYear + ";"
+aflSqlite3Database.runSqlite3Query(deleteQuery)
+
+# Add in new table lines for the current year
+tableBuilder.calculateGamesPlayedAndPlayerStats()
+tableBuilder.calculateTeamAndMatchData()
+
+# -------------- Run queries to build training data -------------
+
+
+
+# -------------- Scrape afl.com to get team line-ups ------------
+
+
+# -------------- Run tensorflow to extract predictions ----------
+
 

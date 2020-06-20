@@ -14,12 +14,12 @@ class TableBuilder:
     years = []
     fullTeams = []
 
-    # SQL flag
+    # SQL flags
     useSQL = False
-
+    clearTables = False
 
     # Dependency injection of HTML scraper and variables
-    def __init__(self, HTMLScraper, Sqlite3Database, teams, teamsList, years, fullTeams, useSQL):
+    def __init__(self, HTMLScraper, Sqlite3Database, teams, teamsList, years, fullTeams, useSQL, clearTables):
         self._Sqlite3Database = Sqlite3Database
         self._HTMLScraper = HTMLScraper
         self.teams = teams
@@ -27,17 +27,19 @@ class TableBuilder:
         self.years = years
         self.fullTeams = fullTeams
         self.useSQL = useSQL
+        self.clearTables = clearTables
         if useSQL:
-            try:
-                self._Sqlite3Database.runSqlite3Query("DROP TABLE GAMES_PLAYED")
-                self._Sqlite3Database.runSqlite3Query("DROP TABLE PLAYER_STATS")
-                self._Sqlite3Database.runSqlite3Query("DROP TABLE MATCH_DATA")
-                self._Sqlite3Database.runSqlite3Query("DROP TABLE TEAM_DATA")
-                self._Sqlite3Database.createSqlite3Tables()
-                print("Tables Cleared")
-            except:
-                self._Sqlite3Database.createSqlite3Tables()
-                print("Tables Created")
+            if clearTables:
+                try:
+                    self._Sqlite3Database.runSqlite3Query("DROP TABLE GAMES_PLAYED")
+                    self._Sqlite3Database.runSqlite3Query("DROP TABLE PLAYER_STATS")
+                    self._Sqlite3Database.runSqlite3Query("DROP TABLE MATCH_DATA")
+                    self._Sqlite3Database.runSqlite3Query("DROP TABLE TEAM_DATA")
+                    self._Sqlite3Database.createSqlite3Tables()
+                    print("Tables Cleared")
+                except:
+                    self._Sqlite3Database.createSqlite3Tables()
+                    print("Tables Created")
 
 
     # Get in-memory array of player stats
