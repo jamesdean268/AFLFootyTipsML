@@ -104,13 +104,9 @@ class TableBuilder:
                         r += 1
                     t += 1
                         
-                # Loop through each player, capture tot column idx and value, and add number of games played
-                # To guarantee 'isnumeric' works to calculate number of games played, we use the pct played table
-                pctTable = 22
-
                 # Extract round data
                 headerArray = ['-1' for t in range(arrSize)]
-                headerTable = tables[pctTable]
+                headerTable = tables[0]#tables[pctTable]
                 headers = headerTable.find_all('thead')
                 roundHeaders = headers[0].contents
                 roundHeader = roundHeaders[1]
@@ -118,6 +114,22 @@ class TableBuilder:
                 for col in roundHeader.find_all('th'):
                     headerArray[c] = col.get_text()
                     c += 1
+
+                # Loop through each player, capture tot column idx and value, and add number of games played
+                # To guarantee 'isnumeric' works to calculate number of games played, we use the pct played table
+                pctTable = 22
+                #if len(tables) < 22:
+                #    pctTable = 21
+                for pt in range(len(tables)):
+                    headerTable = tables[pt]
+                    headers = headerTable.find_all('thead')
+                    featureHeaders = headers[0].contents
+                    featureHeader = featureHeaders[0]
+                    features = featureHeader.find_all('th')
+                    feature = features[0].get_text()
+                    if feature == "% Played":
+                        pctTable = pt
+                        break
 
                 # Extract max row index
                 r = 2
@@ -151,33 +163,49 @@ class TableBuilder:
                             rRow += 1
                     strTable[pctTable][r][totCol + 1] = gamesPlayed
                 
+                # Max number of features - because the table format changes :/ let's go for the first 10 features
+                numFeatures = 10
+
                 # Add total features to consolidated table. Assumes all tables are the same size / shape
                 for r in range(2, endRow):
                     if self.useSQL:
                         insertQuery = "INSERT INTO PLAYER_STATS VALUES ("
-                        insertQuery += "'" + str(strTable[pctTable][r][0]) + "', " # Player Name
+                        insertQuery += "'" + str(strTable[numFeatures][r][0]) + "', " # Player Name
                         insertQuery += "'" + str(self.years[j]) + "', " # Year
                         insertQuery += "'" + str(self.teams[i]) + "', " # Team
-                        insertQuery += "'" + str(strTable[pctTable][r][totCol + 1]) + "'," # Games Played
+                        gamesPlayedCalc = strTable[pctTable][r][totCol + 1]
+                        insertQuery += "'" + str(gamesPlayedCalc) + "'," # Games Played
                         #for t in range(len(tables)):
-                        for t in range(pctTable + 1):
+                        for t in range(numFeatures + 1):
                             #if t == len(tables) - 1:
-                            if t == pctTable:
-                                insertQuery += "'" + str(strTable[t][r][totCol]) + "'" # Last column
+                            if t == numFeatures:
+                                #insertQuery += "'" + str(strTable[t][r][totCol]) + "'" # Last column
+                                insertQuery += "'" + str(strTable[t][r][totCol]) + "'," # Not last column
                             else:
                                 if strTable[t][r][totCol] == "\xa0":
                                     insertQuery += "'" + str(0.0) + "'," # Features
                                 else:
                                     insertQuery += "'" + str(strTable[t][r][totCol]) + "'," # Features
+                        # Calculate averages
+                        for t in range(numFeatures + 1):
+                            val = str(strTable[t][r][totCol])
+                            if val == "\xa0":
+                                val = str(0.0)
+                            floatVal = float(val)
+                            if t == numFeatures:
+                                insertQuery += "'" + str(floatVal/gamesPlayedCalc) + "'" # Last column
+                            else:
+                                insertQuery += "'" + str(floatVal/gamesPlayedCalc) + "',"
+                        
                         insertQuery += ");"
                         self._Sqlite3Database.runSqlite3Query(insertQuery)
                     else:
-                        self.PLAYER_STATS[cRow][0] = strTable[pctTable][r][0] # Player Name
+                        self.PLAYER_STATS[cRow][0] = strTable[numFeatures][r][0] # Player Name
                         self.PLAYER_STATS[cRow][1] = self.years[j] # Year
                         self.PLAYER_STATS[cRow][2] = self.teams[i] # Team
                         self.PLAYER_STATS[cRow][3] = strTable[pctTable][r][totCol + 1] # Games Played
                         #for t in range(len(tables)):
-                        for t in range(pctTable):
+                        for t in range(numFeatures):
                             self.PLAYER_STATS[cRow][4 + t] = strTable[t][r][totCol] # Total of feature
                     cRow += 1
 

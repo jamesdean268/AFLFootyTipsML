@@ -50,7 +50,7 @@ teams = ['adelaide',
 'westcoast',
 'bullldogs']
 
-years = [2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019]
+years = [2012]#, 2013, 2014, 2015, 2016, 2017, 2018, 2019]
 
 # Set full team names based on afl.com.au requirements
 fullTeams = ['Adelaide',
@@ -118,37 +118,90 @@ if generateCSVs:
 # Get latest data from website and update tables, scrape afl.com for players, do ML
 
 # --------------- Populate current years data -----------------
-clearTables = False
-currentYear = 2020
+# clearTables = False
+# currentYear = [2020]
 
-# Create objects
-aflHTMLScraper = HTMLScraper()
-pwd = os.getcwd()
-pathToDatabase = pwd + '/data/AFLFootyTips.db'
-aflSqlite3Database = Sqlite3Database(pathToDatabase)
-tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, teams, teamsList, currentYear, fullTeams, useSQL, clearTables)
+# # Create objects
+# aflHTMLScraper = HTMLScraper()
+# pwd = os.getcwd()
+# pathToDatabase = pwd + '/data/AFLFootyTips.db'
+# aflSqlite3Database = Sqlite3Database(pathToDatabase)
+# tableBuilder = TableBuilder(aflHTMLScraper, aflSqlite3Database, teams, teamsList, currentYear, fullTeams, useSQL, clearTables)
 
-# Remove all previous references to the current year
-deleteQuery = "DELETE FROM GAMES_PLAYED WHERE year = " + currentYear + ";"
-aflSqlite3Database.runSqlite3Query(deleteQuery)
-deleteQuery = "DELETE FROM MATCH_DATA WHERE year = " + currentYear + ";"
-aflSqlite3Database.runSqlite3Query(deleteQuery)
-deleteQuery = "DELETE FROM PLAYER_STATS WHERE year = " + currentYear + ";"
-aflSqlite3Database.runSqlite3Query(deleteQuery)
-deleteQuery = "DELETE FROM TEAM_DATA WHERE year = " + currentYear + ";"
-aflSqlite3Database.runSqlite3Query(deleteQuery)
+# # Remove all previous references to the current year
+# deleteQuery = "DELETE FROM GAMES_PLAYED WHERE year = " + str(currentYear[0]) + ";"
+# aflSqlite3Database.runSqlite3Query(deleteQuery)
+# deleteQuery = "DELETE FROM MATCH_DATA WHERE year = " + str(currentYear[0]) + ";"
+# aflSqlite3Database.runSqlite3Query(deleteQuery)
+# deleteQuery = "DELETE FROM PLAYER_STATS WHERE year = " + str(currentYear[0]) + ";"
+# aflSqlite3Database.runSqlite3Query(deleteQuery)
+# deleteQuery = "DELETE FROM TEAM_DATA WHERE year = " + str(currentYear[0]) + ";"
+# aflSqlite3Database.runSqlite3Query(deleteQuery)
 
-# Add in new table lines for the current year
-tableBuilder.calculateGamesPlayedAndPlayerStats()
-tableBuilder.calculateTeamAndMatchData()
+# # Add in new table lines for the current year
+# tableBuilder.calculateGamesPlayedAndPlayerStats()
+# tableBuilder.calculateTeamAndMatchData()
 
 # -------------- Run queries to build training data -------------
 
+# Connect to the database
+pwd = os.getcwd()
+pathToDatabase = pwd + '/data/AFLFootyTips.db'
+conn = sqlite3.connect(pathToDatabase, isolation_level=None, detect_types=sqlite3.PARSE_COLNAMES)
+c = conn.cursor()
+
+# Run the SQL query to nearly build the feature set
+sqlFile = open(pwd + '/data/TEAM_STATS_PER_ROUND_WITH_SCORE.sql')
+sqlAsString = sqlFile.read()
+c.execute(sqlAsString)
+rows=c.fetchall()
+
+# Read the query contents into an array
+numCols = 16
+teamStatsPerRoundArray = [['-1' for c in range(numCols)] for r in range(len(rows))]
+r = 0
+for row in rows:
+    for c in range(len(row)):
+        teamStatsPerRoundArray[r][c] = str(row[c])
+    r += 1
+
+# Finish building the feature set in an array, then dump to CSV
+featureSet = [['-1' for c in range(12)] for r in range(int(len(rows)/2))]
+fr = 0
+for r in range(0, len(rows), 2):
+    fc = 0
+    for c in range(3, 15):
+        featureSet[fr][fc] = float(teamStatsPerRoundArray[r][c]) - float(teamStatsPerRoundArray[r+1][c]) 
+        fc += 1
+    fr += 1
+
+# Use 5 classifiers:
+# Home team wins > 50 = 2
+# Home team wins > 20 = 1
+# Home team wins or Away team wins < 20 = 0
+# Away team wins > 20 = -1
+# Away team wins > 50 = -2
+scoreCol = 11
+for r in range(len(featureSet)):
+    score = featureSet[r][scoreCol]
+    if score > 29:
+        featureSet[r][scoreCol] = 2
+    elif score > 11:
+        featureSet[r][scoreCol] = 1
+    elif score < -29:
+        featureSet[r][scoreCol] = -2
+    elif score < -11:
+        featureSet[r][scoreCol] = -1
+    else:
+        featureSet[r][scoreCol] = 0
 
 
 # -------------- Scrape afl.com to get team line-ups ------------
 
 
 # -------------- Run tensorflow to extract predictions ----------
+
+
+
 
 
