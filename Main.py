@@ -3,11 +3,28 @@
 import os
 import sqlite3
 import pandas as pd
+import numpy as np
+
+import tensorflow as tf
+from tensorflow import feature_column
+from tensorflow.keras import layers
+from sklearn.model_selection import train_test_split
 
 # Classes
 from src.Sqlite3Database import Sqlite3Database
 from src.HTMLScraper import HTMLScraper
 from src.TableBuilder import TableBuilder
+
+
+# A utility method to create a tf.data dataset from a Pandas Dataframe
+def df_to_dataset(dataframe, shuffle=True, batch_size=32):
+    dataframe = dataframe.copy()
+    labels = dataframe.pop('target')
+    ds = tf.data.Dataset.from_tensor_slices((dict(dataframe), labels))
+    if shuffle:
+        ds = ds.shuffle(buffer_size=len(dataframe))
+    ds = ds.batch(batch_size)
+    return ds
 
 # Teams and years
 # Set team names based on afltables.com requirements
@@ -196,12 +213,74 @@ for r in range(len(featureSet)):
         featureSet[r][scoreCol] = 0
 
 
+# Output to csv
+pathToFeatureSet = pwd + '/data/featureSet.csv'
+fs = np.asarray(featureSet)  
+np.savetxt(pathToFeatureSet, fs, fmt='%10.5f', delimiter=",")
+
+# Add header
+headerString = "DI_Avg,KI_Avg,MK_Avg,HB_Avg,GL_Avg,BH_Avg,HO_Avg,TK_Avg,RB_Avg,I5_Avg,CL_Avg,target"
+with open(pathToFeatureSet, 'r+') as f:
+    content = f.read()
+    f.seek(0, 0)
+    f.write(headerString.rstrip('\r\n') + '\n' + content)
+
 # -------------- Scrape afl.com to get team line-ups ------------
 
 
 # -------------- Run tensorflow to extract predictions ----------
 
+# Use Pandas to create a dataframe
+dataframe = pd.read_csv(pathToFeatureSet)
+dataframe.head()
+
+# Split the dataframe into train, validation, and test
+train, test = train_test_split(dataframe, test_size=0.2)
+train, val = train_test_split(train, test_size=0.2)
+print(len(train), 'train examples')
+print(len(val), 'validation examples')
+print(len(test), 'test examples')
 
 
+# batch_size = 5 # A small batch sized is used for demonstration purposes
+# train_ds = df_to_dataset(train, batch_size=batch_size)
+# val_ds = df_to_dataset(val, shuffle=False, batch_size=batch_size)
+# test_ds = df_to_dataset(test, shuffle=False, batch_size=batch_size)
+
+# for feature_batch, label_batch in train_ds.take(1):
+#     print('Every feature:', list(feature_batch.keys()))
+#     print('A batch of DI_Avg:', feature_batch['DI_Avg'])
+#     print('A batch of targets:', label_batch )
+
+
+feature_columns = []
+# numeric cols
+for header in ['DI_Avg','KI_Avg','MK_Avg','HB_Avg','GL_Avg','BH_Avg','HO_Avg','TK_Avg','RB_Avg','I5_Avg','CL_Avg']:
+    feature_columns.append(feature_column.numeric_column(header))
+
+feature_layer = tf.keras.layers.DenseFeatures(feature_columns)
+
+batch_size = 32
+train_ds = df_to_dataset(train, batch_size=batch_size)
+val_ds = df_to_dataset(val, shuffle=False, batch_size=batch_size)
+test_ds = df_to_dataset(test, shuffle=False, batch_size=batch_size)
+
+model = tf.keras.Sequential([
+    feature_layer,
+    layers.Dense(128, activation='relu'),
+    layers.Dense(128, activation='relu'),
+    layers.Dense(1)
+])
+
+model.compile(optimizer='adam',
+              loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
+              metrics=['accuracy'])
+
+model.fit(train_ds,
+          validation_data=val_ds,
+          epochs=5)
+
+loss, accuracy = model.evaluate(test_ds)
+print("Accuracy", accuracy)
 
 
