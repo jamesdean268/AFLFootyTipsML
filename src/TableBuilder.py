@@ -14,13 +14,33 @@ class TableBuilder:
     years = []
     fullTeams = []
 
+    # SQL flags
+    useSQL = False
+    clearTables = False
+
     # Dependency injection of HTML scraper and variables
-    def __init__(self, HTMLScraper, teams, teamsList, years, fullTeams):
+    def __init__(self, HTMLScraper, Sqlite3Database, teams, teamsList, years, fullTeams, useSQL, clearTables):
+        self._Sqlite3Database = Sqlite3Database
         self._HTMLScraper = HTMLScraper
         self.teams = teams
         self.teamsList = teamsList
         self.years = years
         self.fullTeams = fullTeams
+        self.useSQL = useSQL
+        self.clearTables = clearTables
+        if useSQL:
+            if clearTables:
+                try:
+                    self._Sqlite3Database.runSqlite3Query("DROP TABLE GAMES_PLAYED")
+                    self._Sqlite3Database.runSqlite3Query("DROP TABLE PLAYER_STATS")
+                    self._Sqlite3Database.runSqlite3Query("DROP TABLE MATCH_DATA")
+                    self._Sqlite3Database.runSqlite3Query("DROP TABLE TEAM_DATA")
+                    self._Sqlite3Database.createSqlite3Tables()
+                    print("Tables Cleared")
+                except:
+                    self._Sqlite3Database.createSqlite3Tables()
+                    print("Tables Created")
+
 
     # Get in-memory array of player stats
     def getPlayerStats(self):
@@ -84,13 +104,9 @@ class TableBuilder:
                         r += 1
                     t += 1
                         
-                # Loop through each player, capture tot column idx and value, and add number of games played
-                # To guarantee 'isnumeric' works to calculate number of games played, we use the pct played table
-                pctTable = 22
-
                 # Extract round data
                 headerArray = ['-1' for t in range(arrSize)]
-                headerTable = tables[pctTable]
+                headerTable = tables[0]#tables[pctTable]
                 headers = headerTable.find_all('thead')
                 roundHeaders = headers[0].contents
                 roundHeader = roundHeaders[1]
@@ -99,11 +115,27 @@ class TableBuilder:
                     headerArray[c] = col.get_text()
                     c += 1
 
+                # Loop through each player, capture tot column idx and value, and add number of games played
+                # To guarantee 'isnumeric' works to calculate number of games played, we use the pct played table
+                pctTable = 22
+                #if len(tables) < 22:
+                #    pctTable = 21
+                for pt in range(len(tables)):
+                    headerTable = tables[pt]
+                    headers = headerTable.find_all('thead')
+                    featureHeaders = headers[0].contents
+                    featureHeader = featureHeaders[0]
+                    features = featureHeader.find_all('th')
+                    feature = features[0].get_text()
+                    if feature == "% Played":
+                        pctTable = pt
+                        break
+
                 # Extract max row index
                 r = 2
                 while not(strTable[pctTable][r][0] == '-1'):
                     r += 1
-                endRow = r - 1
+                endRow = r# - 1
                 # Extract max col index
                 c = 1
                 while not(strTable[pctTable][2][c] == '-1'):
@@ -114,22 +146,67 @@ class TableBuilder:
                     gamesPlayed = 0
                     for c in range(1, totCol):
                         if str.isnumeric(strTable[pctTable][r][c]):
-                            self.GAMES_PLAYED[rRow][0] = strTable[pctTable][r][0] # Player Name
-                            self.GAMES_PLAYED[rRow][1] = self.years[j] # Year
-                            self.GAMES_PLAYED[rRow][2] = self.teams[i] # Team
-                            self.GAMES_PLAYED[rRow][3] = headerArray[c] # Round Number
+                            if self.useSQL:
+                                insertQuery = "INSERT INTO GAMES_PLAYED VALUES ("
+                                insertQuery += "'" + str(strTable[pctTable][r][0]) + "', " # Player Name
+                                insertQuery += "'" + str(self.years[j]) + "', " # Year
+                                insertQuery += "'" + str(self.teams[i]) + "', " # Team
+                                insertQuery += "'" + str(headerArray[c]) + "'" # Round Number
+                                insertQuery += ");"
+                                self._Sqlite3Database.runSqlite3Query(insertQuery)
+                            else:
+                                self.GAMES_PLAYED[rRow][0] = strTable[pctTable][r][0] # Player Name
+                                self.GAMES_PLAYED[rRow][1] = self.years[j] # Year
+                                self.GAMES_PLAYED[rRow][2] = self.teams[i] # Team
+                                self.GAMES_PLAYED[rRow][3] = headerArray[c] # Round Number
                             gamesPlayed += 1
                             rRow += 1
                     strTable[pctTable][r][totCol + 1] = gamesPlayed
                 
+                # Max number of features - because the table format changes :/ let's go for the first 10 features
+                numFeatures = 10
+
                 # Add total features to consolidated table. Assumes all tables are the same size / shape
                 for r in range(2, endRow):
-                    self.PLAYER_STATS[cRow][0] = strTable[pctTable][r][0] # Player Name
-                    self.PLAYER_STATS[cRow][1] = self.years[j] # Year
-                    self.PLAYER_STATS[cRow][2] = self.teams[i] # Team
-                    self.PLAYER_STATS[cRow][3] = strTable[pctTable][r][totCol + 1] # Games Played
-                    for t in range(len(tables)):
-                        self.PLAYER_STATS[cRow][4 + t] = strTable[t][r][totCol] # Total of feature
+                    if self.useSQL:
+                        insertQuery = "INSERT INTO PLAYER_STATS VALUES ("
+                        insertQuery += "'" + str(strTable[numFeatures][r][0]) + "', " # Player Name
+                        insertQuery += "'" + str(self.years[j]) + "', " # Year
+                        insertQuery += "'" + str(self.teams[i]) + "', " # Team
+                        gamesPlayedCalc = strTable[pctTable][r][totCol + 1]
+                        insertQuery += "'" + str(gamesPlayedCalc) + "'," # Games Played
+                        #for t in range(len(tables)):
+                        for t in range(numFeatures + 1):
+                            #if t == len(tables) - 1:
+                            if t == numFeatures:
+                                #insertQuery += "'" + str(strTable[t][r][totCol]) + "'" # Last column
+                                insertQuery += "'" + str(strTable[t][r][totCol]) + "'," # Not last column
+                            else:
+                                if strTable[t][r][totCol] == "\xa0":
+                                    insertQuery += "'" + str(0.0) + "'," # Features
+                                else:
+                                    insertQuery += "'" + str(strTable[t][r][totCol]) + "'," # Features
+                        # Calculate averages
+                        for t in range(numFeatures + 1):
+                            val = str(strTable[t][r][totCol])
+                            if val == "\xa0":
+                                val = str(0.0)
+                            floatVal = float(val)
+                            if t == numFeatures:
+                                insertQuery += "'" + str(floatVal/gamesPlayedCalc) + "'" # Last column
+                            else:
+                                insertQuery += "'" + str(floatVal/gamesPlayedCalc) + "',"
+                        
+                        insertQuery += ");"
+                        self._Sqlite3Database.runSqlite3Query(insertQuery)
+                    else:
+                        self.PLAYER_STATS[cRow][0] = strTable[numFeatures][r][0] # Player Name
+                        self.PLAYER_STATS[cRow][1] = self.years[j] # Year
+                        self.PLAYER_STATS[cRow][2] = self.teams[i] # Team
+                        self.PLAYER_STATS[cRow][3] = strTable[pctTable][r][totCol + 1] # Games Played
+                        #for t in range(len(tables)):
+                        for t in range(numFeatures):
+                            self.PLAYER_STATS[cRow][4 + t] = strTable[t][r][totCol] # Total of feature
                     cRow += 1
 
     # Use the HTML scraper to calculate the team data and match data
@@ -178,6 +255,21 @@ class TableBuilder:
                             for i in range(0,len(teamScores)):
                                 fullTeamName = teamNames[i].get_text()
                                 teamIdx = self.fullTeams.index(fullTeamName)
+                                #if self.useSQL:
+                                # SQL Table
+                                insertQuery = "INSERT INTO TEAM_DATA VALUES ("
+                                insertQuery += "'" + str(self.teamsList[teamIdx]) + "', " # Team Name
+                                insertQuery += "'" + str(self.years[j]) + "', " # Year
+                                insertQuery += "'" + str(roundText) + "', " # Round
+                                insertQuery += "'" + str(teamScores[i].get_text()) + "'," # Score
+                                if i % 2 == 0:
+                                    insertQuery += "'" + "Home" + "'"
+                                else:
+                                    insertQuery += "'" + "Away" + "'"
+                                insertQuery += ");"
+                                self._Sqlite3Database.runSqlite3Query(insertQuery)
+                                # Array for next array
+                                #else:
                                 self.TEAM_DATA[tRow][0] = self.teamsList[teamIdx] # Team Name
                                 self.TEAM_DATA[tRow][1] = self.years[j] # Year
                                 self.TEAM_DATA[tRow][2] = roundText # Round
@@ -197,10 +289,19 @@ class TableBuilder:
                 endRow += 1
             
             for i in range(0, endRow, 2):
-                self.MATCH_DATA[mRow][0] = self.TEAM_DATA[i][0] + "_" + self.TEAM_DATA[i + 1][0] # HomeTeam_AwayTeam
-                self.MATCH_DATA[mRow][1] = self.TEAM_DATA[i][1] # Year
-                self.MATCH_DATA[mRow][2] = self.TEAM_DATA[i][2] # Round
-                self.MATCH_DATA[mRow][3] = int(self.TEAM_DATA[i][3]) - int(self.TEAM_DATA[i + 1][3]) # Home Score - Away Score
+                if self.useSQL:
+                    insertQuery = "INSERT INTO MATCH_DATA VALUES ("
+                    insertQuery += "'" + str(self.TEAM_DATA[i][0] + "_" + self.TEAM_DATA[i + 1][0]) + "', " # HomeTeam_AwayTeam
+                    insertQuery += "'" + str(self.TEAM_DATA[i][1]) + "', " # Year
+                    insertQuery += "'" + str(self.TEAM_DATA[i][2]) + "', " # Round
+                    insertQuery += "'" + str(int(self.TEAM_DATA[i][3]) - int(self.TEAM_DATA[i + 1][3])) + "'" # Home Score - Away Score
+                    insertQuery += ");"
+                    self._Sqlite3Database.runSqlite3Query(insertQuery)
+                else:
+                    self.MATCH_DATA[mRow][0] = self.TEAM_DATA[i][0] + "_" + self.TEAM_DATA[i + 1][0] # HomeTeam_AwayTeam
+                    self.MATCH_DATA[mRow][1] = self.TEAM_DATA[i][1] # Year
+                    self.MATCH_DATA[mRow][2] = self.TEAM_DATA[i][2] # Round
+                    self.MATCH_DATA[mRow][3] = int(self.TEAM_DATA[i][3]) - int(self.TEAM_DATA[i + 1][3]) # Home Score - Away Score
                 mRow += 1
 
             

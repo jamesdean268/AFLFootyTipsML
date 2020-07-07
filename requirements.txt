@@ -1,3 +1,4 @@
 tensorflow
 requests
 bs4
+sklearn
