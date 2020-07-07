@@ -254,5 +254,113 @@ with open(pathToFeatureSet, 'r+') as f:
 # -------------- Scrape afl.com to get team line-ups ------------
 
 
+# -------------- Run tensorflow to extract predictions ----------
+# Source: https://hackernoon.com/build-your-first-neural-network-to-predict-house-prices-with-keras-3fb0839680f4
 
+# Use Pandas to create a dataframe
+#dataframe = pd.read_csv(pathToFeatureSet)
+df = pd.read_csv(pathToFeatureSet)
+dataset = df.values
+
+# Features
+X = dataset[:,0:11]
+# Outputs (score classifier)
+Y = dataset[:,11]
+
+# Scale inputs
+min_max_scaler = preprocessing.MinMaxScaler()
+X_scale = min_max_scaler.fit_transform(X)
+
+# Split into test and train datasets
+X_train, X_val_and_test, Y_train, Y_val_and_test = train_test_split(X_scale, Y, test_size=0.1)
+X_val, X_test, Y_val, Y_test = train_test_split(X_val_and_test, Y_val_and_test, test_size=0.5)
+
+'''
+X_train (11 input features, 70% of full dataset)
+X_val (11 input features, 15% of full dataset)
+X_test (11 input features, 15% of full dataset)
+Y_train (1 label, 70% of full dataset)
+Y_val (1 label, 15% of full dataset)
+Y_test (1 label, 15% of full dataset)
+'''
+print(X_train.shape, X_val.shape, X_test.shape, Y_train.shape, Y_val.shape, Y_test.shape)
+
+
+# Build model placeholder 11 inputs, two layers each with 32 nodes, one output
+model = Sequential([
+    Dense(32, activation='relu', input_shape=(11,)),
+    #Dense(16, activation='relu'),
+    Dense(1, activation='sigmoid'),
+])
+
+# Compile the model
+model.compile(optimizer='adam',
+              loss='binary_crossentropy',
+              metrics=['accuracy'])
+
+# Train the model
+hist = model.fit(X_train, Y_train,
+          batch_size=32, epochs=200,
+          validation_data=(X_val, Y_val))
+
+print(Y_test)
+model.evaluate(X_test, Y_test)[1]
+y_out = model.predict_classes(X_test)
+print(y_out)
+
+
+## NEW TABLE FOR THIS WEEKS MATCHES
+
+'''
+dataframe.head()
+
+# Split the dataframe into train, validation, and test
+train, test = train_test_split(dataframe, test_size=0.2)
+train, val = train_test_split(train, test_size=0.2)
+print(len(train), 'train examples')
+print(len(val), 'validation examples')
+print(len(test), 'test examples')
+
+
+# batch_size = 5 # A small batch sized is used for demonstration purposes
+# train_ds = df_to_dataset(train, batch_size=batch_size)
+# val_ds = df_to_dataset(val, shuffle=False, batch_size=batch_size)
+# test_ds = df_to_dataset(test, shuffle=False, batch_size=batch_size)
+
+# for feature_batch, label_batch in train_ds.take(1):
+#     print('Every feature:', list(feature_batch.keys()))
+#     print('A batch of DI_Avg:', feature_batch['DI_Avg'])
+#     print('A batch of targets:', label_batch )
+
+
+feature_columns = []
+# numeric cols
+for header in ['DI_Avg','KI_Avg','MK_Avg','HB_Avg','GL_Avg','BH_Avg','HO_Avg','TK_Avg','RB_Avg','I5_Avg','CL_Avg']:
+    feature_columns.append(feature_column.numeric_column(header))
+
+feature_layer = tf.keras.layers.DenseFeatures(feature_columns)
+
+batch_size = 32
+train_ds = df_to_dataset(train, batch_size=batch_size)
+val_ds = df_to_dataset(val, shuffle=False, batch_size=batch_size)
+test_ds = df_to_dataset(test, shuffle=False, batch_size=batch_size)
+
+model = tf.keras.Sequential([
+    feature_layer,
+    layers.Dense(128, activation='relu'),
+    layers.Dense(128, activation='relu'),
+    layers.Dense(1)
+])
+
+model.compile(optimizer='adam',
+              loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
+              metrics=['accuracy'])
+
+model.fit(train_ds,
+          validation_data=val_ds,
+          epochs=5)
+
+loss, accuracy = model.evaluate(test_ds)
+print("Accuracy", accuracy)
+'''
 
