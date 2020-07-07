@@ -283,7 +283,8 @@ soup = BeautifulSoup(resp.html.html, "lxml")
 
 # Extract tables
 matchWrapperHTML = soup.find_all("div", "team-lineups__wrapper")
-#teamsHTMLParsed = matchWrapperHTML.find_all("div", "team-lineups__team")
+for matchHTML in matchWrapperHTML:
+    teamsHTMLParsed = matchHTML.find_all("div", "team-lineups__team")
 
 #teamsHTML = soup.find_all("div", "team-lineups__team")
 #playerRowsHTML = soup.find_all("div", "team-lineups__positions-row")
