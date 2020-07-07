@@ -5,6 +5,12 @@ import sqlite3
 import pandas as pd
 import numpy as np
 
+# Web
+import requests
+from selenium import webdriver
+from requests_html import HTMLSession
+from bs4 import BeautifulSoup
+
 import tensorflow as tf
 from tensorflow import feature_column
 #from tensorflow.keras import layers
@@ -252,8 +258,42 @@ with open(pathToFeatureSet, 'r+') as f:
     f.write(headerString.rstrip('\r\n') + '\n' + content)
 
 # -------------- Scrape afl.com to get team line-ups ------------
+# Build URL
+webStr = "https://www.afl.com.au/matches/team-lineups"
+webStr = "https://www.afl.com.au/matches/team-lineups?GameWeeks=5"
+
+# Test
+#page = requests.get(webStr)
+#contents = page.content
+#driver = webdriver.PhantomJS()
+#driver.get(webStr)
+
+# create an HTML Session object
+session = HTMLSession()
+# Use the object above to connect to needed webpage
+resp = session.get(webStr)
+# Run JavaScript code on webpage
+resp.html.render()
+soup = BeautifulSoup(resp.html.html, "lxml")
 
 
+# Get parsed HTML
+#htmlScraper = HTMLScraper()
+#soup = htmlScraper.scrapeWebAndParseHTML(webStr)
+
+# Extract tables
+matchWrapperHTML = soup.find_all("div", "team-lineups__wrapper")
+#teamsHTMLParsed = matchWrapperHTML.find_all("div", "team-lineups__team")
+
+#teamsHTML = soup.find_all("div", "team-lineups__team")
+#playerRowsHTML = soup.find_all("div", "team-lineups__positions-row")
+
+players = soup.find_all("span", "team-lineups__player")
+print(players[0].contents[1].contents[0])
+
+print(1)
+
+'''
 # -------------- Run tensorflow to extract predictions ----------
 # Source: https://hackernoon.com/build-your-first-neural-network-to-predict-house-prices-with-keras-3fb0839680f4
 
@@ -275,14 +315,14 @@ X_scale = min_max_scaler.fit_transform(X)
 X_train, X_val_and_test, Y_train, Y_val_and_test = train_test_split(X_scale, Y, test_size=0.1)
 X_val, X_test, Y_val, Y_test = train_test_split(X_val_and_test, Y_val_and_test, test_size=0.5)
 
-'''
-X_train (11 input features, 70% of full dataset)
-X_val (11 input features, 15% of full dataset)
-X_test (11 input features, 15% of full dataset)
-Y_train (1 label, 70% of full dataset)
-Y_val (1 label, 15% of full dataset)
-Y_test (1 label, 15% of full dataset)
-'''
+
+# X_train (11 input features, 70% of full dataset)
+# X_val (11 input features, 15% of full dataset)
+# X_test (11 input features, 15% of full dataset)
+# Y_train (1 label, 70% of full dataset)
+# Y_val (1 label, 15% of full dataset)
+# Y_test (1 label, 15% of full dataset)
+
 print(X_train.shape, X_val.shape, X_test.shape, Y_train.shape, Y_val.shape, Y_test.shape)
 
 
@@ -312,55 +352,3 @@ print(y_out)
 ## NEW TABLE FOR THIS WEEKS MATCHES
 
 '''
-dataframe.head()
-
-# Split the dataframe into train, validation, and test
-train, test = train_test_split(dataframe, test_size=0.2)
-train, val = train_test_split(train, test_size=0.2)
-print(len(train), 'train examples')
-print(len(val), 'validation examples')
-print(len(test), 'test examples')
-
-
-# batch_size = 5 # A small batch sized is used for demonstration purposes
-# train_ds = df_to_dataset(train, batch_size=batch_size)
-# val_ds = df_to_dataset(val, shuffle=False, batch_size=batch_size)
-# test_ds = df_to_dataset(test, shuffle=False, batch_size=batch_size)
-
-# for feature_batch, label_batch in train_ds.take(1):
-#     print('Every feature:', list(feature_batch.keys()))
-#     print('A batch of DI_Avg:', feature_batch['DI_Avg'])
-#     print('A batch of targets:', label_batch )
-
-
-feature_columns = []
-# numeric cols
-for header in ['DI_Avg','KI_Avg','MK_Avg','HB_Avg','GL_Avg','BH_Avg','HO_Avg','TK_Avg','RB_Avg','I5_Avg','CL_Avg']:
-    feature_columns.append(feature_column.numeric_column(header))
-
-feature_layer = tf.keras.layers.DenseFeatures(feature_columns)
-
-batch_size = 32
-train_ds = df_to_dataset(train, batch_size=batch_size)
-val_ds = df_to_dataset(val, shuffle=False, batch_size=batch_size)
-test_ds = df_to_dataset(test, shuffle=False, batch_size=batch_size)
-
-model = tf.keras.Sequential([
-    feature_layer,
-    layers.Dense(128, activation='relu'),
-    layers.Dense(128, activation='relu'),
-    layers.Dense(1)
-])
-
-model.compile(optimizer='adam',
-              loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
-              metrics=['accuracy'])
-
-model.fit(train_ds,
-          validation_data=val_ds,
-          epochs=5)
-
-loss, accuracy = model.evaluate(test_ds)
-print("Accuracy", accuracy)
-'''
-
