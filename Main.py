@@ -7,7 +7,8 @@ import numpy as np
 
 # Web
 import requests
-from selenium import webdriver
+from selenium import webdriver 
+from selenium.webdriver.chrome.options import Options
 from requests_html import HTMLSession
 from bs4 import BeautifulSoup
 
@@ -35,6 +36,11 @@ def df_to_dataset(dataframe, shuffle=True, batch_size=32):
     ds = ds.batch(batch_size)
     return ds
 '''
+
+def toLastnameFirstname(nameStr):
+    nameStr = nameStr.replace(',','')
+    nameArray = nameStr.split(' ')
+    return nameArray[-2] + ', ' + nameArray[1]
 
 # Teams and years
 # Set team names based on afltables.com requirements
@@ -268,6 +274,7 @@ webStr = "https://www.afl.com.au/matches/team-lineups?GameWeeks=5"
 #driver = webdriver.PhantomJS()
 #driver.get(webStr)
 
+'''
 # create an HTML Session object
 session = HTMLSession()
 # Use the object above to connect to needed webpage
@@ -275,16 +282,110 @@ resp = session.get(webStr)
 # Run JavaScript code on webpage
 resp.html.render()
 soup = BeautifulSoup(resp.html.html, "lxml")
+'''
+
+# Using Selenium
+
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+driver = webdriver.Chrome(options=chrome_options)
+
+driver.get(webStr)
+
+soup = BeautifulSoup(driver.page_source, "lxml")
 
 
 # Get parsed HTML
 #htmlScraper = HTMLScraper()
 #soup = htmlScraper.scrapeWebAndParseHTML(webStr)
 
-# Extract tables
+# Connect to database
+pwd = os.getcwd()
+pathToDatabase = pwd + '/data/AFLFootyTips.db'
+aflSqlite3Database = Sqlite3Database(pathToDatabase)
+
+# Drop the previous weeks tables
+try:
+    aflSqlite3Database.runSqlite3Query("DROP TABLE CURRENT_TEAM_DATA")
+    aflSqlite3Database.runSqlite3Query("DROP TABLE CURRENT_GAMES_PLAYED")
+except:
+    print("Tables Created")
+
+# Create the tables
+aflSqlite3Database.runSqlite3Query("CREATE TABLE CURRENT_TEAM_DATA(team text, year text, round text, score real, home_away text);")
+aflSqlite3Database.runSqlite3Query("CREATE TABLE CURRENT_GAMES_PLAYED(player text, year text, team text, round text);")
+
+# Extract teams and matches
+teamPlayersArray = [['-1' for c in range(2)] for r in range(500)]
+rP = 0
+
 matchWrapperHTML = soup.find_all("div", "team-lineups__wrapper")
 for matchHTML in matchWrapperHTML:
+    # Get Team names
     teamsHTMLParsed = matchHTML.find_all("div", "team-lineups__team")
+    teamsHTML = teamsHTMLParsed[0]
+    # --------------- HOME TEAM -----------
+    homeTeam = teamsHTML.contents[1].contents[4]
+    # SQL Table
+    insertQuery = "INSERT INTO CURRENT_TEAM_DATA VALUES ("
+    insertQuery += "'" + str(homeTeam) + "', " # Team Name
+    insertQuery += "'" + str(2020) + "', " # Year
+    insertQuery += "'" + str('RX') + "', " # Round
+    insertQuery += "'" + str(0) + "'," # Score
+    insertQuery += "'" + "Home" + "'"
+    insertQuery += ");"
+    aflSqlite3Database.runSqlite3Query(insertQuery)
+    # --------------- AWAY TEAM -----------
+    awayTeam = teamsHTML.contents[5].contents[4]
+    # SQL Table
+    insertQuery = "INSERT INTO CURRENT_TEAM_DATA VALUES ("
+    insertQuery += "'" + str(awayTeam) + "', " # Team Name
+    insertQuery += "'" + str(2020) + "', " # Year
+    insertQuery += "'" + str('RX') + "', " # Round
+    insertQuery += "'" + str(0) + "'," # Score
+    insertQuery += "'" + "Away" + "'"
+    insertQuery += ");"
+    aflSqlite3Database.runSqlite3Query(insertQuery)
+    # Get Team Players
+    playerRowsHTMLParsed = matchHTML.find_all("div", "team-lineups__positions-row")
+    for playerRow in playerRowsHTMLParsed:
+        homePlayersContainer = playerRow.contents[1]
+        awayPlayersContainer = playerRow.contents[3]
+        homePlayers = homePlayersContainer.find_all("span", "team-lineups__player")
+        awayPlayers = awayPlayersContainer.find_all("span", "team-lineups__player")
+        for homePlayer in homePlayers:
+            teamPlayersArray[rP][0] = homeTeam
+            # Strip out , and turn into lastname, firstname
+            playerString = homePlayer.contents[2]
+            playerName = toLastnameFirstname(playerString)
+            teamPlayersArray[rP][1] = playerName
+            rP += 1
+            # ------------ SQL ------------
+            insertQuery = "INSERT INTO CURRENT_GAMES_PLAYED VALUES ("
+            insertQuery += '"' + str(playerName) + '", ' # Player Name
+            insertQuery += "'" + str(2020) + "', " # Year
+            insertQuery += "'" + str(homeTeam) + "', " # Team
+            insertQuery += "'" + str('RX') + "'" # Round Number
+            insertQuery += ");"
+            aflSqlite3Database.runSqlite3Query(insertQuery)
+
+        for awayPlayer in awayPlayers:
+            teamPlayersArray[rP][0] = awayTeam
+            # Strip out , and turn into lastname, firstname
+            playerString = awayPlayer.contents[2]
+            playerName = toLastnameFirstname(playerString)
+            teamPlayersArray[rP][1] = playerName
+            rP += 1
+            # ------------ SQL ------------
+            insertQuery = "INSERT INTO CURRENT_GAMES_PLAYED VALUES ("
+            insertQuery += '"' + str(playerName) + '", ' # Player Name
+            insertQuery += "'" + str(2020) + "', " # Year
+            insertQuery += "'" + str(awayTeam) + "', " # Team
+            insertQuery += "'" + str('RX') + "'" # Round Number
+            insertQuery += ");"
+            aflSqlite3Database.runSqlite3Query(insertQuery)
+
+
 
 #teamsHTML = soup.find_all("div", "team-lineups__team")
 #playerRowsHTML = soup.find_all("div", "team-lineups__positions-row")

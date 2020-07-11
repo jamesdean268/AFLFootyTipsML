@@ -20,6 +20,9 @@ class Sqlite3Database:
             cursorObj.execute("CREATE TABLE PLAYER_STATS(player text, year text, team text, games_played integer, DI real, KI real, MK real, HB real, GL real, BH real, HO real, TK real, RB real, I5 real, CL real, DI_Avg real, KI_Avg real, MK_Avg real, HB_Avg real, GL_Avg real, BH_Avg real, HO_Avg real, TK_Avg real, RB_Avg real, I5_Avg real, CL_Avg real);")
             cursorObj.execute("CREATE TABLE TEAM_DATA(team text, year text, round text, score real, home_away text);")
             cursorObj.execute("CREATE TABLE MATCH_DATA(hometeam_awayteam text, year text, round text, match_score real);")
+            # Current Rounds
+            cursorObj.execute("CREATE TABLE CURRENT_TEAM_DATA(team text, year text, round text, score real, home_away text);")
+            cursorObj.execute("CREATE TABLE CURRENT_GAMES_PLAYED(player text, year text, team text, round text);")
             # Commit changes
             dbConnection.commit()
         except:
