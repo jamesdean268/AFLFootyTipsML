@@ -110,6 +110,7 @@ fullTeams = ['Adelaide',
 generateDatabase = False
 generateCSVs = False
 useSQL = True
+statsYear = 2019
 
 # ------------------- Data preparation thread -------------------
 if generateDatabase:
@@ -175,7 +176,151 @@ if generateCSVs:
 # tableBuilder.calculateGamesPlayedAndPlayerStats()
 # tableBuilder.calculateTeamAndMatchData()
 
+
+# -------------- Scrape afl.com to get team line-ups ------------
+# Build URL
+webStr = "https://www.afl.com.au/matches/team-lineups"
+webStr = "https://www.afl.com.au/matches/team-lineups?GameWeeks=5"
+
+# Test
+#page = requests.get(webStr)
+#contents = page.content
+#driver = webdriver.PhantomJS()
+#driver.get(webStr)
+
+'''
+# create an HTML Session object
+session = HTMLSession()
+# Use the object above to connect to needed webpage
+resp = session.get(webStr)
+# Run JavaScript code on webpage
+resp.html.render()
+soup = BeautifulSoup(resp.html.html, "lxml")
+'''
+
+# Using Selenium
+
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+driver = webdriver.Chrome(options=chrome_options)
+driver.get(webStr)
+
+# Create that beautiful soup
+soup = BeautifulSoup(driver.page_source, "lxml")
+
+# Connect to database
+pwd = os.getcwd()
+pathToDatabase = pwd + '/data/AFLFootyTips.db'
+aflSqlite3Database = Sqlite3Database(pathToDatabase)
+
+# Drop the previous weeks tables
+try:
+    aflSqlite3Database.runSqlite3Query("DROP TABLE CURRENT_TEAM_DATA")
+    aflSqlite3Database.runSqlite3Query("DROP TABLE CURRENT_GAMES_PLAYED")
+except:
+    print("Tables Created")
+
+# Create the tables
+aflSqlite3Database.runSqlite3Query("CREATE TABLE CURRENT_TEAM_DATA(team text, year text, round text, score real, home_away text);")
+aflSqlite3Database.runSqlite3Query("CREATE TABLE CURRENT_GAMES_PLAYED(player text, year text, team text, round text);")
+
+# Extract teams and matches
+teamPlayersArray = [['-1' for c in range(2)] for r in range(500)]
+rP = 0
+
+matchWrapperHTML = soup.find_all("div", "team-lineups__wrapper")
+for matchHTML in matchWrapperHTML:
+    # Get Team names
+    teamsHTMLParsed = matchHTML.find_all("div", "team-lineups__team")
+    teamsHTML = teamsHTMLParsed[0]
+    # --------------- HOME TEAM -----------
+    homeTeam = teamsHTML.contents[1].contents[4]
+    # SQL Table
+    insertQuery = "INSERT INTO CURRENT_TEAM_DATA VALUES ("
+    insertQuery += "'" + str(homeTeam) + "', " # Team Name
+    insertQuery += "'" + str(statsYear) + "', " # Year
+    insertQuery += "'" + str('RX') + "', " # Round
+    insertQuery += "'" + str(0) + "'," # Score
+    insertQuery += "'" + "Home" + "'"
+    insertQuery += ");"
+    aflSqlite3Database.runSqlite3Query(insertQuery)
+    # --------------- AWAY TEAM -----------
+    awayTeam = teamsHTML.contents[5].contents[4]
+    # SQL Table
+    insertQuery = "INSERT INTO CURRENT_TEAM_DATA VALUES ("
+    insertQuery += "'" + str(awayTeam) + "', " # Team Name
+    insertQuery += "'" + str(statsYear) + "', " # Year
+    insertQuery += "'" + str('RX') + "', " # Round
+    insertQuery += "'" + str(0) + "'," # Score
+    insertQuery += "'" + "Away" + "'"
+    insertQuery += ");"
+    aflSqlite3Database.runSqlite3Query(insertQuery)
+    # Get Team Players
+    playerRowsHTMLParsed = matchHTML.find_all("div", "team-lineups__positions-row")
+    for playerRow in playerRowsHTMLParsed:
+        homePlayersContainer = playerRow.contents[1]
+        awayPlayersContainer = playerRow.contents[3]
+        homePlayers = homePlayersContainer.find_all("span", "team-lineups__player")
+        awayPlayers = awayPlayersContainer.find_all("span", "team-lineups__player")
+        for homePlayer in homePlayers:
+            teamPlayersArray[rP][0] = homeTeam
+            # Strip out , and turn into lastname, firstname
+            playerString = homePlayer.contents[2]
+            playerName = toLastnameFirstname(playerString)
+            teamPlayersArray[rP][1] = playerName
+            rP += 1
+            # ------------ SQL ------------
+            insertQuery = "INSERT INTO CURRENT_GAMES_PLAYED VALUES ("
+            insertQuery += '"' + str(playerName) + '", ' # Player Name
+            insertQuery += "'" + str(statsYear) + "', " # Year
+            insertQuery += "'" + str(homeTeam) + "', " # Team
+            insertQuery += "'" + str('RX') + "'" # Round Number
+            insertQuery += ");"
+            aflSqlite3Database.runSqlite3Query(insertQuery)
+
+        for awayPlayer in awayPlayers:
+            teamPlayersArray[rP][0] = awayTeam
+            # Strip out , and turn into lastname, firstname
+            playerString = awayPlayer.contents[2]
+            playerName = toLastnameFirstname(playerString)
+            teamPlayersArray[rP][1] = playerName
+            rP += 1
+            # ------------ SQL ------------
+            insertQuery = "INSERT INTO CURRENT_GAMES_PLAYED VALUES ("
+            insertQuery += '"' + str(playerName) + '", ' # Player Name
+            insertQuery += "'" + str(statsYear) + "', " # Year
+            insertQuery += "'" + str(awayTeam) + "', " # Team
+            insertQuery += "'" + str('RX') + "'" # Round Number
+            insertQuery += ");"
+            aflSqlite3Database.runSqlite3Query(insertQuery)
+
+
+
+
 # -------------- Run queries to build training data -------------
+
+def getFeatureSet(rows):
+    # Read the query contents into an array
+    numCols = 16
+    teamStatsPerRoundArray = [['-1' for c in range(numCols)] for r in range(len(rows))]
+    r = 0
+    for row in rows:
+        for c in range(len(row)):
+            teamStatsPerRoundArray[r][c] = str(row[c])
+        r += 1
+
+    # Finish building the feature set in an array, then dump to CSV
+    featureSet = [['-1' for c in range(12)] for r in range(int(len(rows)/2))]
+    fr = 0
+    for r in range(0, len(rows), 2):
+        fc = 0
+        for c in range(3, 15):
+            featureSet[fr][fc] = float(teamStatsPerRoundArray[r][c]) - float(teamStatsPerRoundArray[r+1][c]) 
+            fc += 1
+        fr += 1
+    
+    return featureSet
+
 
 # Connect to the database
 pwd = os.getcwd()
@@ -189,24 +334,29 @@ sqlAsString = sqlFile.read()
 c.execute(sqlAsString)
 rows=c.fetchall()
 
-# Read the query contents into an array
-numCols = 16
-teamStatsPerRoundArray = [['-1' for c in range(numCols)] for r in range(len(rows))]
-r = 0
-for row in rows:
-    for c in range(len(row)):
-        teamStatsPerRoundArray[r][c] = str(row[c])
-    r += 1
+# Run the SQL query to nearly build the feature set
+sqlFile = open(pwd + '/data/CURRENT_TEAM_STATS_PER_ROUND_WITH_SCORE.sql')
+sqlAsString = sqlFile.read()
+c.execute(sqlAsString)
+currentRows=c.fetchall()
 
-# Finish building the feature set in an array, then dump to CSV
-featureSet = [['-1' for c in range(12)] for r in range(int(len(rows)/2))]
-fr = 0
-for r in range(0, len(rows), 2):
-    fc = 0
-    for c in range(3, 15):
-        featureSet[fr][fc] = float(teamStatsPerRoundArray[r][c]) - float(teamStatsPerRoundArray[r+1][c]) 
-        fc += 1
-    fr += 1
+featureSet = getFeatureSet(rows)
+currentFeatureSet = getFeatureSet(currentRows)
+
+
+# Output currentFeatureSet to csv
+pathToCurrentFeatureSet = pwd + '/data/currentFeatureSet.csv'
+fs = np.asarray(currentFeatureSet)  
+np.savetxt(pathToCurrentFeatureSet, fs, fmt='%10.5f', delimiter=",")
+
+# Add header
+headerString = "DI_Avg,KI_Avg,MK_Avg,HB_Avg,GL_Avg,BH_Avg,HO_Avg,TK_Avg,RB_Avg,I5_Avg,CL_Avg,target"
+with open(pathToCurrentFeatureSet, 'r+') as f:
+    content = f.read()
+    f.seek(0, 0)
+    f.write(headerString.rstrip('\r\n') + '\n' + content)
+
+# -------------------- TRAINING FEATURE SET ----------------
 
 # Use 5 classifiers:
 # Home team wins > 50 = 2
@@ -263,139 +413,9 @@ with open(pathToFeatureSet, 'r+') as f:
     f.seek(0, 0)
     f.write(headerString.rstrip('\r\n') + '\n' + content)
 
-# -------------- Scrape afl.com to get team line-ups ------------
-# Build URL
-webStr = "https://www.afl.com.au/matches/team-lineups"
-webStr = "https://www.afl.com.au/matches/team-lineups?GameWeeks=5"
-
-# Test
-#page = requests.get(webStr)
-#contents = page.content
-#driver = webdriver.PhantomJS()
-#driver.get(webStr)
-
-'''
-# create an HTML Session object
-session = HTMLSession()
-# Use the object above to connect to needed webpage
-resp = session.get(webStr)
-# Run JavaScript code on webpage
-resp.html.render()
-soup = BeautifulSoup(resp.html.html, "lxml")
-'''
-
-# Using Selenium
-
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-driver = webdriver.Chrome(options=chrome_options)
-
-driver.get(webStr)
-
-soup = BeautifulSoup(driver.page_source, "lxml")
-
-
-# Get parsed HTML
-#htmlScraper = HTMLScraper()
-#soup = htmlScraper.scrapeWebAndParseHTML(webStr)
-
-# Connect to database
-pwd = os.getcwd()
-pathToDatabase = pwd + '/data/AFLFootyTips.db'
-aflSqlite3Database = Sqlite3Database(pathToDatabase)
-
-# Drop the previous weeks tables
-try:
-    aflSqlite3Database.runSqlite3Query("DROP TABLE CURRENT_TEAM_DATA")
-    aflSqlite3Database.runSqlite3Query("DROP TABLE CURRENT_GAMES_PLAYED")
-except:
-    print("Tables Created")
-
-# Create the tables
-aflSqlite3Database.runSqlite3Query("CREATE TABLE CURRENT_TEAM_DATA(team text, year text, round text, score real, home_away text);")
-aflSqlite3Database.runSqlite3Query("CREATE TABLE CURRENT_GAMES_PLAYED(player text, year text, team text, round text);")
-
-# Extract teams and matches
-teamPlayersArray = [['-1' for c in range(2)] for r in range(500)]
-rP = 0
-
-matchWrapperHTML = soup.find_all("div", "team-lineups__wrapper")
-for matchHTML in matchWrapperHTML:
-    # Get Team names
-    teamsHTMLParsed = matchHTML.find_all("div", "team-lineups__team")
-    teamsHTML = teamsHTMLParsed[0]
-    # --------------- HOME TEAM -----------
-    homeTeam = teamsHTML.contents[1].contents[4]
-    # SQL Table
-    insertQuery = "INSERT INTO CURRENT_TEAM_DATA VALUES ("
-    insertQuery += "'" + str(homeTeam) + "', " # Team Name
-    insertQuery += "'" + str(2020) + "', " # Year
-    insertQuery += "'" + str('RX') + "', " # Round
-    insertQuery += "'" + str(0) + "'," # Score
-    insertQuery += "'" + "Home" + "'"
-    insertQuery += ");"
-    aflSqlite3Database.runSqlite3Query(insertQuery)
-    # --------------- AWAY TEAM -----------
-    awayTeam = teamsHTML.contents[5].contents[4]
-    # SQL Table
-    insertQuery = "INSERT INTO CURRENT_TEAM_DATA VALUES ("
-    insertQuery += "'" + str(awayTeam) + "', " # Team Name
-    insertQuery += "'" + str(2020) + "', " # Year
-    insertQuery += "'" + str('RX') + "', " # Round
-    insertQuery += "'" + str(0) + "'," # Score
-    insertQuery += "'" + "Away" + "'"
-    insertQuery += ");"
-    aflSqlite3Database.runSqlite3Query(insertQuery)
-    # Get Team Players
-    playerRowsHTMLParsed = matchHTML.find_all("div", "team-lineups__positions-row")
-    for playerRow in playerRowsHTMLParsed:
-        homePlayersContainer = playerRow.contents[1]
-        awayPlayersContainer = playerRow.contents[3]
-        homePlayers = homePlayersContainer.find_all("span", "team-lineups__player")
-        awayPlayers = awayPlayersContainer.find_all("span", "team-lineups__player")
-        for homePlayer in homePlayers:
-            teamPlayersArray[rP][0] = homeTeam
-            # Strip out , and turn into lastname, firstname
-            playerString = homePlayer.contents[2]
-            playerName = toLastnameFirstname(playerString)
-            teamPlayersArray[rP][1] = playerName
-            rP += 1
-            # ------------ SQL ------------
-            insertQuery = "INSERT INTO CURRENT_GAMES_PLAYED VALUES ("
-            insertQuery += '"' + str(playerName) + '", ' # Player Name
-            insertQuery += "'" + str(2020) + "', " # Year
-            insertQuery += "'" + str(homeTeam) + "', " # Team
-            insertQuery += "'" + str('RX') + "'" # Round Number
-            insertQuery += ");"
-            aflSqlite3Database.runSqlite3Query(insertQuery)
-
-        for awayPlayer in awayPlayers:
-            teamPlayersArray[rP][0] = awayTeam
-            # Strip out , and turn into lastname, firstname
-            playerString = awayPlayer.contents[2]
-            playerName = toLastnameFirstname(playerString)
-            teamPlayersArray[rP][1] = playerName
-            rP += 1
-            # ------------ SQL ------------
-            insertQuery = "INSERT INTO CURRENT_GAMES_PLAYED VALUES ("
-            insertQuery += '"' + str(playerName) + '", ' # Player Name
-            insertQuery += "'" + str(2020) + "', " # Year
-            insertQuery += "'" + str(awayTeam) + "', " # Team
-            insertQuery += "'" + str('RX') + "'" # Round Number
-            insertQuery += ");"
-            aflSqlite3Database.runSqlite3Query(insertQuery)
 
 
 
-#teamsHTML = soup.find_all("div", "team-lineups__team")
-#playerRowsHTML = soup.find_all("div", "team-lineups__positions-row")
-
-players = soup.find_all("span", "team-lineups__player")
-print(players[0].contents[1].contents[0])
-
-print(1)
-
-'''
 # -------------- Run tensorflow to extract predictions ----------
 # Source: https://hackernoon.com/build-your-first-neural-network-to-predict-house-prices-with-keras-3fb0839680f4
 
@@ -403,6 +423,14 @@ print(1)
 #dataframe = pd.read_csv(pathToFeatureSet)
 df = pd.read_csv(pathToFeatureSet)
 dataset = df.values
+
+# Current data
+currentDf = pd.read_csv(pathToCurrentFeatureSet)
+currentDataset = currentDf.values
+# Scale inputs
+current_X = currentDataset[:,0:11]
+min_max_scaler = preprocessing.MinMaxScaler()
+current_X_scale = min_max_scaler.fit_transform(current_X)
 
 # Features
 X = dataset[:,0:11]
@@ -413,8 +441,10 @@ Y = dataset[:,11]
 min_max_scaler = preprocessing.MinMaxScaler()
 X_scale = min_max_scaler.fit_transform(X)
 
+
+# --------------- DEBUG ----------------
 # Split into test and train datasets
-X_train, X_val_and_test, Y_train, Y_val_and_test = train_test_split(X_scale, Y, test_size=0.1)
+X_train, X_val_and_test, Y_train, Y_val_and_test = train_test_split(X_scale, Y, test_size=0.05)
 X_val, X_test, Y_val, Y_test = train_test_split(X_val_and_test, Y_val_and_test, test_size=0.5)
 
 
@@ -426,7 +456,7 @@ X_val, X_test, Y_val, Y_test = train_test_split(X_val_and_test, Y_val_and_test, 
 # Y_test (1 label, 15% of full dataset)
 
 print(X_train.shape, X_val.shape, X_test.shape, Y_train.shape, Y_val.shape, Y_test.shape)
-
+print(current_X_scale.shape)
 
 # Build model placeholder 11 inputs, two layers each with 32 nodes, one output
 model = Sequential([
@@ -445,12 +475,13 @@ hist = model.fit(X_train, Y_train,
           batch_size=32, epochs=200,
           validation_data=(X_val, Y_val))
 
-print(Y_test)
+#print(Y_test)
 model.evaluate(X_test, Y_test)[1]
-y_out = model.predict_classes(X_test)
+
+
+# ------- PREDICTION ----
+y_out = model.predict_classes(current_X_scale)
 print(y_out)
 
 
-## NEW TABLE FOR THIS WEEKS MATCHES
 
-'''
