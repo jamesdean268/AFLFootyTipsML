@@ -180,7 +180,7 @@ if generateCSVs:
 # -------------- Scrape afl.com to get team line-ups ------------
 # Build URL
 webStr = "https://www.afl.com.au/matches/team-lineups"
-webStr = "https://www.afl.com.au/matches/team-lineups?GameWeeks=5"
+#webStr = "https://www.afl.com.au/matches/team-lineups?GameWeeks=5"
 
 # Test
 #page = requests.get(webStr)
