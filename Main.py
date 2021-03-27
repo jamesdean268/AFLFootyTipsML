@@ -202,7 +202,13 @@ soup = BeautifulSoup(resp.html.html, "lxml")
 
 chrome_options = Options()
 chrome_options.add_argument("--headless")
-driver = webdriver.Chrome(options=chrome_options)
+#driver = webdriver.Chrome(options=chrome_options)
+
+from webdriver_manager.chrome import ChromeDriverManager
+#driver = webdriver.Chrome(ChromeDriverManager().install())
+driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+#driver = webdriver.Chrome(options=chrome_options)
+
 driver.get(webStr)
 
 # Create that beautiful soup
